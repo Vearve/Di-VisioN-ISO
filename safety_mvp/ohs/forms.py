@@ -1,0 +1,229 @@
+from django import forms
+from django.contrib.auth.models import User
+
+from .models import (
+    CAPAAction,
+    CCVCriticalControlVerification,
+    Certification,
+    Contractor,
+    Document,
+    Employee,
+    FLRA,
+    FRA,
+    Incident,
+    JSA,
+    Material,
+    MedicalAssessment,
+    MedicalProfile,
+    Objective,
+    Observation,
+    PTOChemicalHazardousSubstance,
+    SafetyChecklist,
+    ScheduleItem,
+    SiteProject,
+    TenantMembership,
+    ToolboxTalk,
+    TrainingMatrix,
+)
+
+
+class TenantScopedModelForm(forms.ModelForm):
+    def __init__(self, *args, tenant=None, **kwargs):
+        self.tenant = tenant
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            if isinstance(field, forms.ModelMultipleChoiceField):
+                existing_class = field.widget.attrs.get('class', '').strip()
+                widget_class = f'{existing_class} searchable-multiselect-source'.strip()
+                field.widget.attrs['class'] = widget_class
+                field.widget.attrs.setdefault('data-placeholder', 'Search...')
+
+        if tenant is None:
+            return
+
+        if 'site' in self.fields:
+            self.fields['site'].queryset = SiteProject.objects.filter(tenant=tenant).order_by('name')
+
+        member_user_ids = TenantMembership.objects.filter(
+            tenant=tenant,
+            is_active=True,
+        ).values_list('user_id', flat=True)
+
+        user_fields = [
+            'assigned_to',
+            'owner',
+            'verified_by',
+            'investigation_lead',
+            'action_owner',
+            'supervisor_approval',
+            'approver',
+            'employee',
+            'assessor',
+        ]
+        for field in user_fields:
+            if field in self.fields:
+                self.fields[field].queryset = User.objects.filter(id__in=member_user_ids).order_by('username')
+
+        if 'employee' in self.fields and isinstance(self.fields['employee'], forms.ModelChoiceField):
+            if self.fields['employee'].queryset.model is Employee:
+                self.fields['employee'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
+
+        if 'assigned_employees' in self.fields:
+            self.fields['assigned_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
+            self.fields['assigned_employees'].widget.attrs.setdefault('data-placeholder', 'Search employees...')
+
+        if 'profile' in self.fields:
+            self.fields['profile'].queryset = MedicalProfile.objects.filter(tenant=tenant).order_by('employee__name')
+
+        if 'related_material' in self.fields:
+            self.fields['related_material'].queryset = Material.objects.filter(tenant=tenant).order_by('name')
+
+        if 'certifications' in self.fields:
+            self.fields['certifications'].queryset = Certification.objects.filter(tenant=tenant).order_by('name')
+            self.fields['certifications'].widget.attrs.setdefault('data-placeholder', 'Search certifications...')
+
+        if 'attachments' in self.fields:
+            self.fields['attachments'].queryset = Document.objects.filter(tenant=tenant).order_by('name')
+            self.fields['attachments'].widget.attrs.setdefault('data-placeholder', 'Search documents...')
+
+        if 'selected_employees' in self.fields:
+            self.fields['selected_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
+            self.fields['selected_employees'].widget.attrs.setdefault('data-placeholder', 'Search employees...')
+
+
+class IncidentForm(TenantScopedModelForm):
+    class Meta:
+        model = Incident
+        exclude = ('tenant', 'date_reported', 'reported_by')
+
+
+class JSAForm(TenantScopedModelForm):
+    class Meta:
+        model = JSA
+        exclude = ('tenant', 'date', 'performed_by', 'created_at', 'updated_at')
+
+
+class FRAForm(TenantScopedModelForm):
+    class Meta:
+        model = FRA
+        exclude = ('tenant', 'date_assessed', 'assessed_by')
+
+
+class FLRAForm(TenantScopedModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if 'selected_employees' in self.fields:
+            self.fields['selected_employees'].queryset = Employee.objects.filter(tenant=self.tenant).order_by('name') if self.tenant else Employee.objects.none()
+            self.fields['selected_employees'].widget = forms.SelectMultiple(attrs={
+                'size': 6,
+                'class': 'searchable-multiselect-source',
+                'data-placeholder': 'Search employees...',
+            })
+            self.fields['selected_employees'].label = 'Employees on task'
+            self.fields['selected_employees'].help_text = 'Hold Ctrl or Cmd to select one or more employees for the same task.'
+
+        if 'crew' in self.fields:
+            self.fields['crew'].label = 'Crew / external workers'
+            self.fields['crew'].help_text = 'Optional free text for contractors, visitors, or people not listed as employees.'
+
+    class Meta:
+        model = FLRA
+        exclude = ('tenant', 'date', 'assessed_by')
+
+
+class ObservationForm(TenantScopedModelForm):
+    class Meta:
+        model = Observation
+        exclude = ('tenant', 'date', 'observed_by')
+
+
+class PTOChemicalHazardousSubstanceForm(TenantScopedModelForm):
+    class Meta:
+        model = PTOChemicalHazardousSubstance
+        exclude = ('tenant', 'created_at')
+
+
+class CCVCriticalControlVerificationForm(TenantScopedModelForm):
+    class Meta:
+        model = CCVCriticalControlVerification
+        exclude = ('tenant', 'created_at')
+
+
+class SafetyChecklistForm(TenantScopedModelForm):
+    class Meta:
+        model = SafetyChecklist
+        exclude = ('tenant', 'date_completed', 'completed_by')
+
+
+class ToolboxTalkForm(TenantScopedModelForm):
+    class Meta:
+        model = ToolboxTalk
+        exclude = ('tenant', 'created_at', 'conducted_by')
+
+
+class EmployeeForm(TenantScopedModelForm):
+    class Meta:
+        model = Employee
+        exclude = ('tenant',)
+
+
+class ContractorForm(TenantScopedModelForm):
+    class Meta:
+        model = Contractor
+        exclude = ('tenant',)
+
+
+class CertificationForm(TenantScopedModelForm):
+    class Meta:
+        model = Certification
+        exclude = ('tenant',)
+
+
+class TrainingMatrixForm(TenantScopedModelForm):
+    class Meta:
+        model = TrainingMatrix
+        exclude = ('tenant',)
+
+
+class ObjectiveForm(TenantScopedModelForm):
+    class Meta:
+        model = Objective
+        exclude = ('tenant',)
+
+
+class DocumentForm(TenantScopedModelForm):
+    class Meta:
+        model = Document
+        exclude = ('tenant', 'upload_date', 'uploaded_by')
+
+
+class MaterialForm(TenantScopedModelForm):
+    class Meta:
+        model = Material
+        exclude = ('tenant',)
+
+
+class ScheduleItemForm(TenantScopedModelForm):
+    class Meta:
+        model = ScheduleItem
+        exclude = ('tenant', 'created_by', 'created_at', 'updated_at')
+
+
+class CAPAActionForm(TenantScopedModelForm):
+    class Meta:
+        model = CAPAAction
+        exclude = ('tenant', 'created_by', 'created_at', 'updated_at')
+
+
+class MedicalProfileForm(TenantScopedModelForm):
+    class Meta:
+        model = MedicalProfile
+        exclude = ('tenant', 'created_at', 'updated_at')
+
+
+class MedicalAssessmentForm(TenantScopedModelForm):
+    class Meta:
+        model = MedicalAssessment
+        exclude = ('tenant', 'created_at')

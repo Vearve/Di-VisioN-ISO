@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; }
+        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }
+        .menu a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; }
+        .menu a.active, .menu a:hover { background: #204753; color: white; }
+        .content { padding: 24px; }
+        .panel { margin-top: 16px; background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 14px; overflow-x: auto; }
+        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
+        .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
+        .filters label { display: block; font-size: 0.8rem; color: #6a7d86; margin-bottom: 4px; }
+        .filters input, .filters select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #dfe6e8; }
+        .btn { text-decoration: none; color: white; background: #0f8f6f; border: none; border-radius: 10px; font-weight: 700; padding: 9px 12px; font-size: 0.85rem; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        th, td { border-bottom: 1px solid #dfe6e8; padding: 9px 8px; text-align: left; font-size: 0.9rem; }
+        th { color: #6a7d86; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.05em; }
+        .muted { color: #6a7d86; }
+        @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Safety Command Center</div>
+            <div class="menu">
+                <a href="/">Home</a>
+                <a href="/app/schedules/">Schedules</a>
+                <a href="/app/capa/">CAPA Center</a>
+                <a href="/app/medical-profiles/">Medical Center</a>
+                <a class="active" href="/analytics/">Analytics</a>
+                <a href="/admin/">Admin</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="header">
+                <h1>Analytics Dashboard</h1>
+                <div class="muted">Trend analysis from daily KPI snapshots by tenant and site.</div>
+            </div>
+
+            <section class="panel">
+                <form method="get" class="filters">
+                    <div>
+                        <label for="site">Site</label>
+                        <select id="site" name="site">
+                            <option value="">All Sites</option>
+                            {% for site in sites %}
+                                <option value="{{ site.id }}" {% if selected_site == site.id|stringformat:"s" %}selected{% endif %}>{{ site.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="start">Start Date</label>
+                        <input id="start" type="date" name="start" value="{{ start_date }}">
+                    </div>
+                    <div>
+                        <label for="end">End Date</label>
+                        <input id="end" type="date" name="end" value="{{ end_date }}">
+                    </div>
+                    <div>
+                        <button class="btn" type="submit">Apply Filters</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel">
+                <canvas id="kpiTrendChart"></canvas>
+            </section>
+
+            <section class="panel">
+                <table>
+                    <tr>
+                        <th>Date</th>
+                        <th>Incidents</th>
+                        <th>Open CAPA</th>
+                        <th>Overdue CAPA</th>
+                        <th>Observations</th>
+                        <th>Checklists</th>
+                        <th>Medical Due</th>
+                    </tr>
+                    {% for snap in snapshots %}
+                    <tr>
+                        <td>{{ snap.snapshot_date }}</td>
+                        <td>{{ snap.incident_count }}</td>
+                        <td>{{ snap.open_capa_count }}</td>
+                        <td>{{ snap.overdue_capa_count }}</td>
+                        <td>{{ snap.observation_count }}</td>
+                        <td>{{ snap.checklist_count }}</td>
+                        <td>{{ snap.medical_due_count }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="muted">No KPI snapshots available for selected filters.</td></tr>
+                    {% endfor %}
+                </table>
+            </section>
+        </main>
+    </div>
+
+    {{ chart_points|json_script:"kpi-points" }}
+    <script>
+        const points = JSON.parse(document.getElementById('kpi-points').textContent);
+        const labels = points.map(item => item.snapshot_date);
+
+        new Chart(document.getElementById('kpiTrendChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Incidents',
+                        data: points.map(item => item.incident_count),
+                        borderColor: '#c4442f',
+                        backgroundColor: 'rgba(196,68,47,0.14)',
+                        tension: 0.25
+                    },
+                    {
+                        label: 'Open CAPA',
+                        data: points.map(item => item.open_capa_count),
+                        borderColor: '#0f8f6f',
+                        backgroundColor: 'rgba(15,143,111,0.14)',
+                        tension: 0.25
+                    },
+                    {
+                        label: 'Overdue CAPA',
+                        data: points.map(item => item.overdue_capa_count),
+                        borderColor: '#7b2cbf',
+                        backgroundColor: 'rgba(123,44,191,0.14)',
+                        tension: 0.25
+                    },
+                    {
+                        label: 'Medical Due',
+                        data: points.map(item => item.medical_due_count),
+                        borderColor: '#1f7a8c',
+                        backgroundColor: 'rgba(31,122,140,0.14)',
+                        tension: 0.25
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

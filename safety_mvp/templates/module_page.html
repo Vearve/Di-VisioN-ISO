@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
+        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
+        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
+        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
+        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
+        .content { padding: 24px; }
+        .header { margin-bottom: 16px; }
+        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
+        .muted { color: #6a7d86; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .panel { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 14px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
+        .panel h3 { margin-top: 0; }
+        .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7d86; margin-top: 16px; margin-bottom: 6px; }
+        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; }
+        input, select, textarea { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; }
+        textarea { min-height: 80px; }
+        .btn { margin-top: 12px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor: pointer; }
+        .btn.secondary { background: #4b5563; margin-left: 6px; }
+        .btn.danger { background: #b91c1c; }
+        .actions { display: flex; gap: 8px; align-items: center; }
+        .inline-form { display: inline; margin: 0; }
+        .action-link { color: #0f8f6f; text-decoration: none; font-weight: 700; }
+        .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+        .errorlist { color: #b91c1c; margin: 0; padding-left: 16px; font-size: 0.82rem; }
+        .helptext { display: block; margin-top: 4px; color: #6a7d86; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; min-width: 640px; }
+        th, td { border-bottom: 1px solid #dfe6e8; padding: 8px; text-align: left; font-size: 0.88rem; vertical-align: top; }
+        th { color: #6a7d86; text-transform: uppercase; font-size: 0.76rem; letter-spacing: 0.05em; }
+        .record-wrap { overflow-x: auto; max-height: 70vh; }
+        .search-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .search-bar input[type=search] { flex: 1; max-width: 320px; }
+        .search-bar button { margin-top: 0; padding: 8px 14px; }
+        .records-meta { font-size: 0.82rem; color: #6a7d86; margin-bottom: 6px; }
+        .info-card { margin-bottom: 12px; padding: 10px; border: 1px dashed #b7c8ce; border-radius: 10px; background: #f8fbfc; }
+        .info-card h4 { margin: 0 0 6px; font-size: 0.9rem; }
+        .step-list { margin: 8px 0 0; padding-left: 20px; font-size: 0.84rem; color: #27434c; }
+        .step-list li { margin-bottom: 4px; }
+        .pagination { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+        .pagination a, .pagination span { padding: 5px 10px; border-radius: 7px; font-size: 0.84rem; font-weight: 600; border: 1px solid #dfe6e8; background: #fff; color: #17313b; text-decoration: none; }
+        .pagination a:hover { background: #e6f0f3; }
+        .pagination .current { background: #0f8f6f; color: #fff; border-color: #0f8f6f; }
+        .pagination .disabled { color: #b0c0c5; border-color: #edf1f3; cursor: default; }
+        .searchable-multiselect { margin-top: 4px; border: 1px solid #d1dde1; border-radius: 10px; background: #fff; overflow: hidden; }
+        .searchable-multiselect-input { border: 0; border-bottom: 1px solid #dfe6e8; border-radius: 0; margin-top: 0; padding: 10px; }
+        .searchable-multiselect-summary { padding: 8px 10px; font-size: 0.8rem; color: #6a7d86; background: #f8fbfc; border-bottom: 1px solid #dfe6e8; }
+        .searchable-multiselect-options { max-height: 220px; overflow-y: auto; padding: 6px; }
+        .searchable-multiselect-option { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; }
+        .searchable-multiselect-option:hover { background: #f1f7f8; }
+        .searchable-multiselect-option input { width: auto; margin: 0; }
+        .searchable-multiselect-empty { padding: 10px; color: #6a7d86; font-size: 0.8rem; }
+        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Safety Command Center</div>
+
+            <div class="menu-group">
+                <h4>Main</h4>
+                <a href="/">Home</a>
+                <a href="/analytics/">Analytics</a>
+                <a href="/app/schedules/" class="{% if active_route == 'schedules_page' %}active{% endif %}">Schedules</a>
+                <a href="/app/capa/" class="{% if active_route == 'capa_page' %}active{% endif %}">CAPA</a>
+                <a href="/app/medical-profiles/" class="{% if active_route == 'medical_profiles_page' %}active{% endif %}">Medical Profiles</a>
+                <a href="/app/medical-assessments/" class="{% if active_route == 'medical_assessments_page' %}active{% endif %}">Medical Assessments</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Operations</h4>
+                <a href="/app/incidents/" class="{% if active_route == 'incidents_page' %}active{% endif %}">Incidents</a>
+                <a href="/app/jsa/" class="{% if active_route == 'jsa_page' %}active{% endif %}">JSA</a>
+                <a href="/app/fra/" class="{% if active_route == 'fra_page' %}active{% endif %}">FRA</a>
+                <a href="/app/flra/" class="{% if active_route == 'flra_page' %}active{% endif %}">FLRA</a>
+                <a href="/app/observations/" class="{% if active_route == 'observations_page' %}active{% endif %}">Observations</a>
+                <a href="/app/toolbox-talks/" class="{% if active_route == 'toolbox_talks_page' %}active{% endif %}">Toolbox Talks</a>
+                <a href="/app/pto-chemicals/" class="{% if active_route == 'pto_chemicals_page' %}active{% endif %}">PTO - Chemicals</a>
+                <a href="/app/ccv/" class="{% if active_route == 'ccv_page' %}active{% endif %}">CCV</a>
+                <a href="/app/checklists/" class="{% if active_route == 'checklists_page' %}active{% endif %}">Checklists</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>People & Docs</h4>
+                <a href="/app/employees/" class="{% if active_route == 'employees_page' %}active{% endif %}">Employees</a>
+                <a href="/app/contractors/" class="{% if active_route == 'contractors_page' %}active{% endif %}">Contractors</a>
+                <a href="/app/certifications/" class="{% if active_route == 'certifications_page' %}active{% endif %}">Certifications</a>
+                <a href="/app/training/" class="{% if active_route == 'training_page' %}active{% endif %}">Training</a>
+                <a href="/app/documents/" class="{% if active_route == 'documents_page' %}active{% endif %}">Documents</a>
+                <a href="/app/materials/" class="{% if active_route == 'materials_page' %}active{% endif %}">Materials</a>
+                <a href="/app/objectives/" class="{% if active_route == 'objectives_page' %}active{% endif %}">Objectives</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="header">
+                <h1>{{ title }}</h1>
+                <p class="muted">{{ description }}</p>
+                {% if current_tenant %}
+                    <p class="muted">Tenant: {{ current_tenant.name }} | Role: {{ current_role|default:"unknown" }}</p>
+                {% else %}
+                    <p class="muted">No tenant selected.</p>
+                {% endif %}
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="grid">
+                <section class="panel">
+                    <h3>{% if is_edit_mode %}Edit Record{% else %}Add New{% endif %}</h3>
+
+                    {% if template_field_map %}
+                    <div class="info-card">
+                        <h4>Template Fields Dropdown</h4>
+                        <label for="pto-template-select">Select Template</label>
+                        <select id="pto-template-select"></select>
+                        <label for="pto-field-select">Fields for Selected Template</label>
+                        <select id="pto-field-select"></select>
+                        <h4 style="margin-top:10px;">Selected Form Title</h4>
+                        <div id="pto-meta" class="muted"></div>
+                        <h4 style="margin-top:10px;">Selected Standardized Steps</h4>
+                        <ol id="pto-step-list" class="step-list"></ol>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% if is_edit_mode %}
+                            <input type="hidden" name="edit_id" value="{{ edit_record_id }}">
+                        {% endif %}
+
+                        {% for section_title, section_fields in section_blocks %}
+                            <div class="section-title">{{ section_title }}</div>
+                            {% for field in section_fields %}
+                                <p>{{ field.label_tag }} {{ field }} {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %} {{ field.errors }}</p>
+                            {% endfor %}
+                        {% endfor %}
+
+                        {% if jsa_step_rows %}
+                            <div class="section-title">Job Safety Analysis Log</div>
+                            <div class="record-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>S/N</th>
+                                            <th>Job Step</th>
+                                            <th>Job Step Hazard</th>
+                                            <th>Current Controls</th>
+                                            <th>Control Type</th>
+                                            <th>L</th>
+                                            <th>C</th>
+                                            <th>Risk</th>
+                                            <th>Additional Actions</th>
+                                            <th>L</th>
+                                            <th>C</th>
+                                            <th>Risk</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in jsa_step_rows %}
+                                        <tr>
+                                            <td>{{ row.step_number }}</td>
+                                            <td><textarea name="jsa_step_{{ row.step_number }}_job_step">{{ row.job_step }}</textarea></td>
+                                            <td><textarea name="jsa_step_{{ row.step_number }}_job_step_hazard">{{ row.job_step_hazard }}</textarea></td>
+                                            <td><textarea name="jsa_step_{{ row.step_number }}_current_controls">{{ row.current_controls }}</textarea></td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_evaluation_control_type">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.hierarchy %}
+                                                        <option value="{{ value }}" {% if row.evaluation_control_type == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_likelihood_before">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.likelihood_before == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_consequence_before">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.consequence_before == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_residual_risk_before">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.residual_risk_before == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td><textarea name="jsa_step_{{ row.step_number }}_required_additional_actions">{{ row.required_additional_actions }}</textarea></td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_likelihood_after">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.likelihood_after == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_consequence_after">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.consequence_after == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="jsa_step_{{ row.step_number }}_residual_risk_after">
+                                                    <option value=""></option>
+                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
+                                                        <option value="{{ value }}" {% if row.residual_risk_after == value %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+
+                        {% if jsa_team_rows %}
+                            <div class="section-title">Team Member Acknowledgement</div>
+                            <div class="record-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Name</th>
+                                            <th>ID No.</th>
+                                            <th>Signature</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in jsa_team_rows %}
+                                        <tr>
+                                            <td><input type="date" name="jsa_team_member_{{ row.row_number }}_date" value="{{ row.date }}"></td>
+                                            <td><input type="text" name="jsa_team_member_{{ row.row_number }}_name" value="{{ row.name }}"></td>
+                                            <td><input type="text" name="jsa_team_member_{{ row.row_number }}_id_no" value="{{ row.id_no }}"></td>
+                                            <td><input type="text" name="jsa_team_member_{{ row.row_number }}_signature" value="{{ row.signature }}"></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+
+                        {% if jsa_review_rows %}
+                            <div class="section-title">Team Member Review For More Than One Shift</div>
+                            <div class="record-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Name</th>
+                                            <th>ID No.</th>
+                                            <th>Signature</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in jsa_review_rows %}
+                                        <tr>
+                                            <td><input type="date" name="jsa_daily_review_{{ row.row_number }}_date" value="{{ row.date }}"></td>
+                                            <td><input type="text" name="jsa_daily_review_{{ row.row_number }}_name" value="{{ row.name }}"></td>
+                                            <td><input type="text" name="jsa_daily_review_{{ row.row_number }}_id_no" value="{{ row.id_no }}"></td>
+                                            <td><input type="text" name="jsa_daily_review_{{ row.row_number }}_signature" value="{{ row.signature }}"></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+
+                        <button class="btn" type="submit">{% if is_edit_mode %}Update{% else %}Save{% endif %}</button>
+                        {% if is_edit_mode %}
+                            <a class="btn secondary" href=".">Cancel</a>
+                        {% endif %}
+                    </form>
+                </section>
+
+                <section class="panel record-wrap">
+                    <h3>Recent Records</h3>
+                    <form class="search-bar" method="get" action=".">
+                        <input type="search" name="q" value="{{ search_query }}" placeholder="Search records…">
+                        <button class="btn" type="submit">Search</button>
+                        {% if search_query %}<a class="btn secondary" href=".">Clear</a>{% endif %}
+                    </form>
+                    {% if total_count is not None %}
+                    <p class="records-meta">{{ total_count }} record{{ total_count|pluralize }} found{% if search_query %} for "{{ search_query }}"{% endif %}</p>
+                    {% endif %}
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for column in list_columns %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in list_rows %}
+                            <tr>
+                                {% for val in row.values %}
+                                    <td>{{ val }}</td>
+                                {% endfor %}
+                                <td>
+                                    <div class="actions">
+                                        <a class="action-link" href="?edit={{ row.id }}">Edit</a>
+                                        <form class="inline-form" method="post">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="delete_id" value="{{ row.id }}">
+                                            <button class="btn danger" type="submit">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="99" class="muted">No records yet for this module.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+                    <div class="pagination">
+                        {% if page_obj.has_previous %}
+                            <a href="?q={{ search_query }}&page=1">&laquo; First</a>
+                            <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">Prev</a>
+                        {% else %}
+                            <span class="disabled">&laquo; First</span>
+                            <span class="disabled">Prev</span>
+                        {% endif %}
+
+                        <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
+                            <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                        {% else %}
+                            <span class="disabled">Next</span>
+                            <span class="disabled">Last &raquo;</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const sourceSelects = document.querySelectorAll('select.searchable-multiselect-source[multiple]');
+
+            for (const select of sourceSelects) {
+                select.style.display = 'none';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'searchable-multiselect';
+
+                const input = document.createElement('input');
+                input.type = 'search';
+                input.className = 'searchable-multiselect-input';
+                input.placeholder = select.dataset.placeholder || 'Search...';
+
+                const summary = document.createElement('div');
+                summary.className = 'searchable-multiselect-summary';
+
+                const optionsBox = document.createElement('div');
+                optionsBox.className = 'searchable-multiselect-options';
+
+                const emptyState = document.createElement('div');
+                emptyState.className = 'searchable-multiselect-empty';
+                emptyState.textContent = 'No matching employees.';
+                emptyState.style.display = 'none';
+
+                const optionRows = [];
+
+                for (const option of Array.from(select.options)) {
+                    const row = document.createElement('label');
+                    row.className = 'searchable-multiselect-option';
+                    row.dataset.label = option.textContent.toLowerCase();
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = option.selected;
+                    checkbox.disabled = option.disabled;
+
+                    const text = document.createElement('span');
+                    text.textContent = option.textContent;
+
+                    checkbox.addEventListener('change', () => {
+                        option.selected = checkbox.checked;
+                        updateSummary();
+                    });
+
+                    row.appendChild(checkbox);
+                    row.appendChild(text);
+                    optionsBox.appendChild(row);
+                    optionRows.push(row);
+                }
+
+                const updateSummary = () => {
+                    const selectedCount = Array.from(select.options).filter(option => option.selected).length;
+                    summary.textContent = selectedCount === 0
+                        ? 'No employees selected'
+                        : `${selectedCount} employee${selectedCount === 1 ? '' : 's'} selected`;
+                };
+
+                const applyFilter = () => {
+                    const query = input.value.trim().toLowerCase();
+                    let visibleCount = 0;
+
+                    for (const row of optionRows) {
+                        const visible = !query || row.dataset.label.includes(query);
+                        row.style.display = visible ? 'flex' : 'none';
+                        if (visible) {
+                            visibleCount += 1;
+                        }
+                    }
+
+                    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+                };
+
+                input.addEventListener('input', applyFilter);
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(summary);
+                wrapper.appendChild(optionsBox);
+                wrapper.appendChild(emptyState);
+
+                select.insertAdjacentElement('afterend', wrapper);
+                updateSummary();
+                applyFilter();
+            }
+        })();
+    </script>
+
+    {% if template_field_map %}
+    {{ template_field_map|json_script:"template-field-map" }}
+    {{ template_step_map|json_script:"template-step-map" }}
+    {{ template_meta_map|json_script:"template-meta-map" }}
+    <script>
+        (function () {
+            const mapNode = document.getElementById('template-field-map');
+            const stepMapNode = document.getElementById('template-step-map');
+            const metaMapNode = document.getElementById('template-meta-map');
+            const templateSelect = document.getElementById('pto-template-select');
+            const fieldSelect = document.getElementById('pto-field-select');
+            const stepList = document.getElementById('pto-step-list');
+            const metaBox = document.getElementById('pto-meta');
+            const templateTypeField = document.querySelector('select[name="pto_type"]')
+                || document.querySelector('select[name="ccv_type"]')
+                || document.querySelector('select[name="checklist_type"]');
+            if (!mapNode || !templateSelect || !fieldSelect || !templateTypeField) {
+                return;
+            }
+
+            const fieldMap = JSON.parse(mapNode.textContent || '{}');
+            const stepMap = stepMapNode ? JSON.parse(stepMapNode.textContent || '{}') : {};
+            const metaMap = metaMapNode ? JSON.parse(metaMapNode.textContent || '{}') : {};
+            const templates = Object.keys(fieldMap);
+
+            for (const key of templates) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = key.replaceAll('_', ' ');
+                templateSelect.appendChild(option);
+            }
+
+            const fillFieldOptions = (templateKey) => {
+                fieldSelect.innerHTML = '';
+                const fields = fieldMap[templateKey] || [];
+                for (const f of fields) {
+                    const option = document.createElement('option');
+                    option.value = f;
+                    option.textContent = f.replaceAll('_', ' ');
+                    fieldSelect.appendChild(option);
+                }
+            };
+
+            const fillStepOptions = (templateKey) => {
+                if (!stepList) {
+                    return;
+                }
+                stepList.innerHTML = '';
+                const steps = stepMap[templateKey] || [];
+                for (const s of steps) {
+                    const li = document.createElement('li');
+                    li.textContent = s;
+                    stepList.appendChild(li);
+                }
+            };
+
+            const fillMeta = (templateKey) => {
+                if (!metaBox) {
+                    return;
+                }
+                const meta = metaMap[templateKey] || {};
+                const metaLines = [];
+                if (meta.title) {
+                    metaLines.push(meta.title);
+                }
+                if (meta.document_no) {
+                    metaLines.push(`Document No: ${meta.document_no}`);
+                }
+                if (meta.revision_no) {
+                    metaLines.push(`Revision No: ${meta.revision_no}`);
+                }
+                if (meta.effective_date) {
+                    metaLines.push(`Effective Date: ${meta.effective_date}`);
+                }
+                if (meta.status) {
+                    metaLines.push(`Status: ${meta.status}`);
+                }
+                if (meta.ref) {
+                    metaLines.push(`Ref: ${meta.ref}`);
+                }
+                if (meta.version) {
+                    metaLines.push(`Version: ${meta.version}`);
+                }
+                metaBox.textContent = metaLines.join(' | ');
+            };
+
+            const updateStepFieldLabels = (templateKey) => {
+                const steps = stepMap[templateKey] || [];
+
+                for (let index = 1; index <= 29; index += 1) {
+                    const stepKey = String(index).padStart(2, '0');
+                    const question = steps[index - 1];
+                    const compliantName = `step_${stepKey}_compliant`;
+                    const commentsName = `step_${stepKey}_comments`;
+
+                    const compliantInput = document.querySelector(`[name="${compliantName}"]`);
+                    const commentsInput = document.querySelector(`[name="${commentsName}"]`);
+
+                    const compliantRow = compliantInput ? compliantInput.closest('p') : null;
+                    const commentsRow = commentsInput ? commentsInput.closest('p') : null;
+
+                    const isActiveStep = Boolean(question);
+
+                    if (compliantRow) {
+                        compliantRow.style.display = isActiveStep ? '' : 'none';
+                    }
+                    if (commentsRow) {
+                        commentsRow.style.display = isActiveStep ? '' : 'none';
+                    }
+
+                    if (!isActiveStep) {
+                        continue;
+                    }
+
+                    if (compliantRow) {
+                        const compliantLabel = compliantRow.querySelector('label');
+                        if (compliantLabel) {
+                            compliantLabel.textContent = `Step ${index}: ${question} (Yes/No)`;
+                        }
+                    }
+
+                    if (commentsRow) {
+                        const commentsLabel = commentsRow.querySelector('label');
+                        if (commentsLabel) {
+                            commentsLabel.textContent = `Step ${index} comments (optional)`;
+                        }
+                    }
+                }
+            };
+
+            const syncFromForm = () => {
+                const selected = templateTypeField.value || templates[0];
+                templateSelect.value = selected;
+                fillFieldOptions(selected);
+                fillStepOptions(selected);
+                fillMeta(selected);
+                updateStepFieldLabels(selected);
+            };
+
+            templateSelect.addEventListener('change', () => {
+                templateTypeField.value = templateSelect.value;
+                fillFieldOptions(templateSelect.value);
+                fillStepOptions(templateSelect.value);
+                fillMeta(templateSelect.value);
+                updateStepFieldLabels(templateSelect.value);
+            });
+
+            templateTypeField.addEventListener('change', syncFromForm);
+            syncFromForm();
+        })();
+    </script>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; }
+        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }
+        .menu a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; }
+        .menu a.active, .menu a:hover { background: #204753; color: white; }
+        .content { padding: 24px; }
+        .panel { margin-top: 16px; background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 14px; overflow-x: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
+        .cta { text-decoration: none; color: white; background: #0f8f6f; border-radius: 10px; font-weight: 700; padding: 9px 12px; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        th, td { border-bottom: 1px solid #dfe6e8; padding: 9px 8px; text-align: left; font-size: 0.9rem; }
+        th { color: #6a7d86; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.05em; }
+        .muted { color: #6a7d86; }
+        @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">Safety Command Center</div>
+            <div class="menu">
+                <a href="/">Home</a>
+                <a href="/app/schedules/">Schedules</a>
+                <a href="/app/capa/">CAPA Center</a>
+                <a class="active" href="/app/medical-profiles/">Medical Center</a>
+                <a href="/analytics/">Analytics</a>
+                <a href="/admin/">Admin</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="header">
+                <div>
+                    <h1>Medical Tracking Center</h1>
+                    <div class="muted">Medical fitness, surveillance obligations, and assessment history by tenant and site.</div>
+                </div>
+                {% if can_manage_medical %}<a class="cta" href="/admin/ohs/medicalprofile/add/">Add Medical Profile</a>{% endif %}
+            </div>
+
+            <div class="panel">
+                <h3>Medical Profiles</h3>
+                <table>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Fitness Status</th>
+                        <th>Surveillance</th>
+                        <th>Next Medical Due</th>
+                        <th>Restrictions</th>
+                    </tr>
+                    {% for profile in profiles %}
+                    <tr>
+                        <td>{{ profile.employee.name }}</td>
+                        <td>{{ profile.get_fitness_status_display }}</td>
+                        <td>{% if profile.surveillance_required %}Required{% else %}Not Required{% endif %}</td>
+                        <td>{{ profile.next_medical_due|default:"-" }}</td>
+                        <td>{{ profile.restrictions|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="muted">No medical profiles for current tenant.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+            <div class="panel">
+                <h3>Recent Assessments</h3>
+                <table>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Exam Type</th>
+                        <th>Assessment Date</th>
+                        <th>Valid Until</th>
+                        <th>Outcome</th>
+                        <th>Provider</th>
+                    </tr>
+                    {% for item in assessments %}
+                    <tr>
+                        <td>{{ item.profile.employee.name }}</td>
+                        <td>{{ item.exam_type }}</td>
+                        <td>{{ item.assessment_date }}</td>
+                        <td>{{ item.valid_until|default:"-" }}</td>
+                        <td>{{ item.get_outcome_display }}</td>
+                        <td>{{ item.provider|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="muted">No medical assessments for current tenant.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

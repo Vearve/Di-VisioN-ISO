@@ -1,5 +1,35 @@
-from django.shortcuts import render
-from .models import Incident, JSA, FRA, FLRA, Document, Material, Observation, SafetyChecklist, Certification, Contractor, Employee, Objective
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from django.core.paginator import Paginator
+from datetime import timedelta
+from django.utils.timezone import localdate
+import operator
+from functools import reduce
+from django.db.models import Q
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject
+from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
+from .forms import (
+    CAPAActionForm,
+    CCVCriticalControlVerificationForm,
+    CertificationForm,
+    ContractorForm,
+    DocumentForm,
+    EmployeeForm,
+    FLRAForm,
+    FRAForm,
+    IncidentForm,
+    JSAForm,
+    MaterialForm,
+    MedicalAssessmentForm,
+    MedicalProfileForm,
+    ObjectiveForm,
+    ObservationForm,
+    PTOChemicalHazardousSubstanceForm,
+    SafetyChecklistForm,
+    ScheduleItemForm,
+    ToolboxTalkForm,
+    TrainingMatrixForm,
+)
 
 TARGETS = {
     'observation': 20,   # CCV including PTO
@@ -11,18 +41,33 @@ TARGETS = {
 }
 
 def home(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    today = localdate()
+
+    def scoped(model):
+        qs = model.objects.all()
+        if current_tenant:
+            return qs.filter(tenant=current_tenant)
+        return qs.none()
+
     data = {
-        'incident_count': Incident.objects.count(),
-        'jsa_count': JSA.objects.count(),
-        'fra_count': FRA.objects.count(),
-        'flra_count': FLRA.objects.count(),
-        'document_count': Document.objects.count(),
-        'material_count': Material.objects.count(),
-        'observation_count': Observation.objects.count(),
-        'safetychecklist_count': SafetyChecklist.objects.count(),
-        'certification_count': Certification.objects.count(),
-        'contractor_count': Contractor.objects.count(),
-        'employee_count': Employee.objects.count(),
+        'incident_count': scoped(Incident).count(),
+        'jsa_count': scoped(JSA).count(),
+        'fra_count': scoped(FRA).count(),
+        'flra_count': scoped(FLRA).count(),
+        'document_count': scoped(Document).count(),
+        'material_count': scoped(Material).count(),
+        'observation_count': scoped(Observation).count(),
+        'safetychecklist_count': scoped(SafetyChecklist).count(),
+        'certification_count': scoped(Certification).count(),
+        'contractor_count': scoped(Contractor).count(),
+        'employee_count': scoped(Employee).count(),
+        'schedule_count': scoped(ScheduleItem).count(),
+        'pending_reminder_count': scoped(Reminder).filter(status='pending').count(),
+        'capa_open_count': scoped(CAPAAction).exclude(status='closed').count(),
+        'capa_overdue_count': scoped(CAPAAction).exclude(status='closed').filter(due_date__lt=today).count(),
+        'medical_due_count': scoped(MedicalProfile).filter(next_medical_due__isnull=False, next_medical_due__lte=today + timedelta(days=30)).count(),
+        'audit_event_count': scoped(AuditLog).count(),
 
         # Targets for bar chart
         'observation_target': TARGETS['observation'],
@@ -30,8 +75,1374 @@ def home(request):
         'jsa_target': TARGETS['jsa'],
         'fra_target': TARGETS['fra'],
     }
-    objectives = Objective.objects.all()
+    objectives = scoped(Objective)
+    training_matrix = scoped(TrainingMatrix)
+    reminders = scoped(Reminder).filter(status='pending').order_by('remind_on', 'due_date')[:8]
+    schedule_items = scoped(ScheduleItem).filter(is_active=True).order_by('next_due_date')[:8]
+    capa_actions = scoped(CAPAAction).exclude(status='closed').order_by('due_date', 'priority')[:8]
+    medical_due = scoped(MedicalProfile).filter(next_medical_due__isnull=False).order_by('next_medical_due')[:8]
+    recent_audit_events = scoped(AuditLog).order_by('-created_at')[:10]
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    permissions = {
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'can_manage_schedules': has_minimum_role(current_role, 'supervisor'),
+        'can_view_docs': has_minimum_role(current_role, 'worker'),
+        'can_manage_capa': has_minimum_role(current_role, 'supervisor'),
+        'can_manage_medical': has_minimum_role(current_role, 'site_manager'),
+    }
+
     return render(request, 'home.html', {
         **data,
         'objectives': objectives,
+        'training_matrix': training_matrix,
+        'upcoming_reminders': reminders,
+        'upcoming_schedule_items': schedule_items,
+        'open_capa_actions': capa_actions,
+        'upcoming_medicals': medical_due,
+        'recent_audit_events': recent_audit_events,
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        **permissions,
     })
+
+
+def schedule_center(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if current_tenant is None:
+        schedule_items = ScheduleItem.objects.none()
+        reminders = Reminder.objects.none()
+    else:
+        schedule_items = ScheduleItem.objects.filter(tenant=current_tenant).order_by('next_due_date', 'title')
+        reminders = Reminder.objects.filter(tenant=current_tenant).order_by('remind_on', 'due_date')
+
+    return render(request, 'schedule_center.html', {
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'can_manage_schedules': has_minimum_role(current_role, 'supervisor'),
+        'schedule_items': schedule_items,
+        'reminders': reminders,
+    })
+
+
+def capa_center(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if current_tenant is None:
+        actions = CAPAAction.objects.none()
+    else:
+        actions = CAPAAction.objects.filter(tenant=current_tenant).order_by('status', 'due_date', '-created_at')
+
+    return render(request, 'capa_center.html', {
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'can_manage_capa': has_minimum_role(current_role, 'supervisor'),
+        'actions': actions,
+    })
+
+
+def medical_center(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if current_tenant is None:
+        profiles = MedicalProfile.objects.none()
+        assessments = MedicalAssessment.objects.none()
+    else:
+        profiles = MedicalProfile.objects.filter(tenant=current_tenant).order_by('next_medical_due', 'employee__name')
+        assessments = MedicalAssessment.objects.filter(tenant=current_tenant).order_by('-assessment_date')[:30]
+
+    return render(request, 'medical_center.html', {
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'can_manage_medical': has_minimum_role(current_role, 'site_manager'),
+        'profiles': profiles,
+        'assessments': assessments,
+    })
+
+
+def analytics_dashboard(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+    site_id = request.GET.get('site')
+
+    if current_tenant is None:
+        snapshots = AnalyticsWarehouseDaily.objects.none()
+        sites = SiteProject.objects.none()
+    else:
+        snapshots = AnalyticsWarehouseDaily.objects.filter(tenant=current_tenant)
+        sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name')
+
+        if site_id:
+            snapshots = snapshots.filter(site_id=site_id)
+        if start_date:
+            snapshots = snapshots.filter(snapshot_date__gte=start_date)
+        if end_date:
+            snapshots = snapshots.filter(snapshot_date__lte=end_date)
+
+    snapshots = snapshots.order_by('snapshot_date')
+    chart_points = list(snapshots.values(
+        'snapshot_date',
+        'incident_count',
+        'open_capa_count',
+        'overdue_capa_count',
+        'observation_count',
+        'checklist_count',
+        'medical_due_count',
+    ))
+
+    return render(request, 'analytics_dashboard.html', {
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'sites': sites,
+        'snapshots': snapshots,
+        'chart_points': chart_points,
+        'selected_site': site_id or '',
+        'start_date': start_date or '',
+        'end_date': end_date or '',
+    })
+
+
+def _module_page(
+    request,
+    *,
+    model,
+    form_class,
+    title,
+    description,
+    route_name,
+    user_role_min='worker',
+    auto_user_fields=None,
+    list_fields=None,
+    form_sections=None,
+    extra_context=None,
+    post_save_callback=None,
+):
+    current_tenant = getattr(request, 'current_tenant', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if not has_minimum_role(current_role, user_role_min):
+        messages.error(request, 'You do not have access to this page for the selected tenant.')
+        return redirect('home')
+
+    search_query = request.GET.get('q', '').strip()
+    page_number = request.GET.get('page', 1)
+    PAGE_SIZE = 25
+
+    records = model.objects.none()
+    total_count = 0
+    if current_tenant:
+        qs = model.objects.filter(tenant=current_tenant).order_by('-id')
+        if search_query:
+            # Search across all CharField and TextField fields
+            string_fields = [
+                f.name for f in model._meta.get_fields()
+                if hasattr(f, 'get_internal_type') and f.get_internal_type() in ('CharField', 'TextField')
+            ]
+            if string_fields:
+                q_filter = reduce(operator.or_, [Q(**{f'{f}__icontains': search_query}) for f in string_fields])
+                qs = qs.filter(q_filter)
+        total_count = qs.count()
+        paginator = Paginator(qs, PAGE_SIZE)
+        page_obj = paginator.get_page(page_number)
+        records = page_obj
+    else:
+        page_obj = None
+        paginator = None
+
+    edit_instance = None
+    edit_id = request.GET.get('edit')
+    if edit_id and current_tenant:
+        edit_instance = model.objects.filter(tenant=current_tenant, id=edit_id).first()
+
+    if request.method == 'POST':
+        delete_id = request.POST.get('delete_id')
+        if delete_id and current_tenant:
+            deleted, _ = model.objects.filter(tenant=current_tenant, id=delete_id).delete()
+            if deleted:
+                messages.success(request, f'{title} record deleted.')
+            else:
+                messages.error(request, 'Record not found or not allowed.')
+            return redirect(route_name)
+
+        edit_post_id = request.POST.get('edit_id')
+        if edit_post_id and current_tenant:
+            edit_instance = model.objects.filter(tenant=current_tenant, id=edit_post_id).first()
+
+        form = form_class(request.POST, request.FILES, tenant=current_tenant, instance=edit_instance)
+        if form.is_valid() and current_tenant:
+            instance = form.save(commit=False)
+            instance.tenant = current_tenant
+
+            for field in (auto_user_fields or []):
+                if hasattr(instance, field):
+                    setattr(instance, field, request.user)
+
+            instance.save()
+            form.save_m2m()
+            if post_save_callback:
+                post_save_callback(request, instance)
+            if edit_instance:
+                messages.success(request, f'{title} updated successfully.')
+            else:
+                messages.success(request, f'{title} saved successfully.')
+            return redirect(route_name)
+    else:
+        form = form_class(tenant=current_tenant, instance=edit_instance)
+
+    section_blocks = []
+    used_fields = set()
+    if form_sections:
+        for section_title, section_field_names in form_sections:
+            section_fields = []
+            for field_name in section_field_names:
+                if field_name in form.fields:
+                    section_fields.append(form[field_name])
+                    used_fields.add(field_name)
+            if section_fields:
+                section_blocks.append((section_title, section_fields))
+
+    remaining_fields = [form[field] for field in form.fields if field not in used_fields]
+    if remaining_fields:
+        section_blocks.append(('Other Details', remaining_fields))
+
+    resolved_fields = list_fields or [('id', 'ID'), ('__str__', 'Record')]
+    list_columns = [label for _, label in resolved_fields]
+    list_rows = []
+    for row in records:
+        values = []
+        for field_name, _ in resolved_fields:
+            if field_name == '__str__':
+                value = str(row)
+            else:
+                display_method = f'get_{field_name}_display'
+                if hasattr(row, display_method):
+                    value = getattr(row, display_method)()
+                else:
+                    value = getattr(row, field_name, '')
+                if isinstance(value, bool):
+                    value = 'Yes' if value else 'No'
+                if value in (None, ''):
+                    value = '-'
+            values.append(value)
+        list_rows.append({'id': row.id, 'values': values})
+
+    return render(request, 'module_page.html', {
+        'current_tenant': current_tenant,
+        'available_tenants': available_tenants,
+        'current_role': current_role,
+        'can_manage_tenant': has_minimum_role(current_role, 'admin'),
+        'can_manage_schedules': has_minimum_role(current_role, 'supervisor'),
+        'can_manage_capa': has_minimum_role(current_role, 'supervisor'),
+        'can_manage_medical': has_minimum_role(current_role, 'site_manager'),
+        'title': title,
+        'description': description,
+        'form': form,
+        'is_edit_mode': edit_instance is not None,
+        'edit_record_id': edit_instance.id if edit_instance else '',
+        'section_blocks': section_blocks,
+        'list_columns': list_columns,
+        'list_rows': list_rows,
+        'active_route': route_name,
+        'search_query': search_query,
+        'page_obj': page_obj,
+        'total_count': total_count,
+        **(extra_context or {}),
+    })
+
+
+def incidents_page(request):
+    return _module_page(
+        request,
+        model=Incident,
+        form_class=IncidentForm,
+        title='Incident Reporting',
+        description='Capture incident details without using admin pages.',
+        route_name='incidents_page',
+        auto_user_fields=['reported_by'],
+        list_fields=[
+            ('title', 'Title'),
+            ('incident_category', 'Category'),
+            ('severity', 'Severity'),
+            ('location', 'Location'),
+            ('reportable_to_regulator', 'Regulator Reportable'),
+        ],
+        form_sections=[
+            ('Incident Overview', ['site', 'title', 'incident_category', 'severity', 'location', 'event_datetime']),
+            ('People and Impact', ['affected_person_name', 'employment_type', 'department', 'crew', 'injury_type', 'body_part_affected', 'lost_time_days', 'treatment_level']),
+            ('Investigation', ['description', 'witnesses', 'immediate_action_taken', 'root_cause', 'contributing_factors', 'corrective_actions', 'action_owner', 'investigation_lead', 'investigation_completion_date']),
+            ('Compliance and Evidence', ['reportable_to_regulator', 'regulator_notification_date', 'closeout_verification', 'lessons_learned', 'image', 'incident_file']),
+        ],
+    )
+
+
+def jsa_page(request):
+    edit_id = request.GET.get('edit') or request.POST.get('edit_id')
+    step_lookup = {}
+    edit_jsa = None
+    if getattr(request, 'current_tenant', None) and edit_id:
+        edit_jsa = JSA.objects.filter(tenant=request.current_tenant, id=edit_id).first()
+        if edit_jsa:
+            step_lookup = {step.step_number: step for step in edit_jsa.steps.all()}
+
+    def build_people_rows(entries, total_rows):
+        rows = []
+        entries = entries or []
+        for index in range(total_rows):
+            entry = entries[index] if index < len(entries) else {}
+            rows.append({
+                'row_number': index + 1,
+                'date': entry.get('date', ''),
+                'name': entry.get('name', ''),
+                'id_no': entry.get('id_no', ''),
+                'signature': entry.get('signature', ''),
+            })
+        return rows
+
+    def parse_people_rows(post_request, prefix, total_rows):
+        rows = []
+        for index in range(1, total_rows + 1):
+            row = {
+                'date': post_request.POST.get(f'{prefix}_{index}_date', '').strip(),
+                'name': post_request.POST.get(f'{prefix}_{index}_name', '').strip(),
+                'id_no': post_request.POST.get(f'{prefix}_{index}_id_no', '').strip(),
+                'signature': post_request.POST.get(f'{prefix}_{index}_signature', '').strip(),
+            }
+            if any(row.values()):
+                rows.append(row)
+        return rows
+
+    def save_jsa_steps(post_request, jsa_instance):
+        step_rows = []
+        for index in range(1, 9):
+            row = {
+                'step_number': index,
+                'job_step': post_request.POST.get(f'jsa_step_{index}_job_step', '').strip(),
+                'job_step_hazard': post_request.POST.get(f'jsa_step_{index}_job_step_hazard', '').strip(),
+                'current_controls': post_request.POST.get(f'jsa_step_{index}_current_controls', '').strip(),
+                'evaluation_control_type': post_request.POST.get(f'jsa_step_{index}_evaluation_control_type', '').strip(),
+                'likelihood_before': post_request.POST.get(f'jsa_step_{index}_likelihood_before', '').strip(),
+                'consequence_before': post_request.POST.get(f'jsa_step_{index}_consequence_before', '').strip(),
+                'residual_risk_before': post_request.POST.get(f'jsa_step_{index}_residual_risk_before', '').strip(),
+                'required_additional_actions': post_request.POST.get(f'jsa_step_{index}_required_additional_actions', '').strip(),
+                'likelihood_after': post_request.POST.get(f'jsa_step_{index}_likelihood_after', '').strip(),
+                'consequence_after': post_request.POST.get(f'jsa_step_{index}_consequence_after', '').strip(),
+                'residual_risk_after': post_request.POST.get(f'jsa_step_{index}_residual_risk_after', '').strip(),
+            }
+            if any(value for key, value in row.items() if key != 'step_number'):
+                step_rows.append(row)
+
+        jsa_instance.steps.all().delete()
+        if step_rows:
+            JSAStep.objects.bulk_create([
+                JSAStep(jsa=jsa_instance, **row) for row in step_rows
+            ])
+
+        jsa_instance.team_member_acknowledgements = parse_people_rows(post_request, 'jsa_team_member', 10)
+        jsa_instance.daily_review_log = parse_people_rows(post_request, 'jsa_daily_review', 10)
+        jsa_instance.save(update_fields=['team_member_acknowledgements', 'daily_review_log'])
+
+    step_choice_map = {
+        'hierarchy': JSAStep.HIERARCHY_CHOICES,
+        'risk_levels': JSAStep.RISK_LEVEL_CHOICES,
+    }
+
+    return _module_page(
+        request,
+        model=JSA,
+        form_class=JSAForm,
+        title='Job Safety Analysis (FM0464)',
+        description='Create comprehensive job safety analyses with hazard controls and risk assessment.',
+        route_name='jsa_page',
+        auto_user_fields=['performed_by'],
+        list_fields=[
+            ('jsa_number', 'JSA #'),
+            ('job_task', 'Job Task'),
+            ('plant_area', 'Plant/Area'),
+            ('assessment_date', 'Date'),
+            ('signed', 'Signed'),
+        ],
+        form_sections=[
+            ('Document Metadata', ['document_reference', 'revision_number', 'total_pages', 'date_of_issue', 'date_of_next_review']),
+            ('JSA Summary', ['site', 'jsa_number', 'work_order_number', 'job_task', 'plant_area', 'location', 'assessment_date']),
+            ('Supervisors', ['senior_supervisor_name', 'senior_supervisor_signature', 'work_group_supervisor_name', 'work_group_supervisor_signature']),
+            ('Permits Required', ['permit_to_work', 'excavation_permit', 'hot_work_permit', 'hv_electrical_isolation_permit', 'hv_vicinity_permit', 'radiation_work_permit', 'working_at_height_permit', 'chemical_pump_pipe_permit', 'confined_space_permit', 'other_permit', 'other_permit_description']),
+            ('PPE & Equipment', ['additional_ppe_requirements', 'special_tools_equipment']),
+            ('Fatality Prevention Commitments', ['fpc_competent_capable_controlled', 'fpc_identify_control_hazards', 'fpc_safe_lifting_operations', 'fpc_drive_safely', 'fpc_energy_isolation', 'fpc_confined_space_entry', 'fpc_work_at_heights', 'fpc_surface_underground', 'fpc_equipment_safeguards', 'fpc_chemicals_hazardous_substances']),
+            ('Hazardous Materials & Emergency Equipment', ['hazardous_materials', 'fire_emergency_equipment']),
+            ('Supporting Documents', ['supports_lift_plan', 'supports_sds', 'supports_emergency_action_plan', 'safe_work_procedure_possible']),
+            ('Potential Hazards', ['hazard_flora_fauna', 'hazard_electrical', 'hazard_mechanical', 'hazard_chemical', 'hazard_dust_fume', 'hazard_soil_erosion', 'hazard_stored_energy', 'hazard_live_equipment', 'hazard_manual_handling', 'hazard_radiation', 'hazard_spills_water', 'hazard_falling_equipment', 'hazard_noise', 'hazard_ignition_sources', 'hazard_spills_ground', 'hazard_fire_explosives', 'hazard_light_dark', 'hazard_rock_falls', 'hazard_concealed_services']),
+            ('Weather Conditions', ['weather_rain', 'weather_thunder', 'weather_lightning', 'weather_extreme_temperatures', 'weather_other', 'weather_other_description']),
+            ('Acknowledgements', ['senior_supervisor_acknowledgement']),
+            ('Approval and Review', ['pre_job_briefing_completed', 'supervisor_approval', 'signed', 'valid_from', 'valid_to', 'jsa_file']),
+        ],
+        post_save_callback=save_jsa_steps,
+        extra_context={
+            'jsa_step_choice_map': step_choice_map,
+            'jsa_step_rows': [
+                {
+                    'step_number': index,
+                    'job_step': getattr(step_lookup.get(index), 'job_step', ''),
+                    'job_step_hazard': getattr(step_lookup.get(index), 'job_step_hazard', ''),
+                    'current_controls': getattr(step_lookup.get(index), 'current_controls', ''),
+                    'evaluation_control_type': getattr(step_lookup.get(index), 'evaluation_control_type', ''),
+                    'likelihood_before': getattr(step_lookup.get(index), 'likelihood_before', ''),
+                    'consequence_before': getattr(step_lookup.get(index), 'consequence_before', ''),
+                    'residual_risk_before': getattr(step_lookup.get(index), 'residual_risk_before', ''),
+                    'required_additional_actions': getattr(step_lookup.get(index), 'required_additional_actions', ''),
+                    'likelihood_after': getattr(step_lookup.get(index), 'likelihood_after', ''),
+                    'consequence_after': getattr(step_lookup.get(index), 'consequence_after', ''),
+                    'residual_risk_after': getattr(step_lookup.get(index), 'residual_risk_after', ''),
+                }
+                for index in range(1, 9)
+            ],
+            'jsa_team_rows': build_people_rows(getattr(edit_jsa, 'team_member_acknowledgements', []), 10),
+            'jsa_review_rows': build_people_rows(getattr(edit_jsa, 'daily_review_log', []), 10),
+        },
+    )
+
+
+def fra_page(request):
+    return _module_page(
+        request,
+        model=FRA,
+        form_class=FRAForm,
+        title='FRA Entries',
+        description='Create formal risk assessments from the front-end.',
+        route_name='fra_page',
+        auto_user_fields=['assessed_by'],
+        list_fields=[
+            ('activity', 'Activity'),
+            ('hazard_category', 'Hazard Category'),
+            ('risk_level', 'Risk Level'),
+            ('initial_risk_score', 'Initial Score'),
+            ('residual_risk_score', 'Residual Score'),
+        ],
+        form_sections=[
+            ('FRA Details', ['site', 'activity', 'location', 'hazard_category', 'persons_at_risk', 'risk_identified']),
+            ('Risk Scoring', ['likelihood', 'severity_score', 'initial_risk_score', 'residual_likelihood', 'residual_severity', 'residual_risk_score', 'acceptable']),
+            ('Control Measures', ['existing_controls', 'additional_controls', 'control_measures', 'review_frequency', 'approver', 'fra_file']),
+        ],
+    )
+
+
+def flra_page(request):
+    return _module_page(
+        request,
+        model=FLRA,
+        form_class=FLRAForm,
+        title='FLRA Entries',
+        description='Capture field level risk assessments by site and shift.',
+        route_name='flra_page',
+        auto_user_fields=['assessed_by'],
+        list_fields=[
+            ('task_description', 'Task'),
+            ('location', 'Location'),
+            ('selected_employee_names', 'Employees'),
+            ('shift', 'Shift'),
+            ('energy_isolation_confirmed', 'Isolation Confirmed'),
+            ('escalation_required', 'Escalation'),
+        ],
+        form_sections=[
+            ('Task Context', ['site', 'task_description', 'location', 'shift', 'selected_employees', 'crew', 'weather_conditions']),
+            ('Operational Conditions', ['simultaneous_operations', 'energy_isolation_confirmed', 'stop_work_authority_used', 'dynamic_changes_noticed']),
+            ('Controls and Sign-off', ['identified_hazards', 'control_measures', 'additional_controls_added', 'worker_signatures', 'supervisor_signature', 'escalation_required', 'flra_file']),
+        ],
+    )
+
+
+def observations_page(request):
+    return _module_page(
+        request,
+        model=Observation,
+        form_class=ObservationForm,
+        title='Observations',
+        description='Log PTO and CCV observations in one user page.',
+        route_name='observations_page',
+        auto_user_fields=['observed_by'],
+        list_fields=[
+            ('task', 'Task'),
+            ('observation_type', 'Type'),
+            ('follow_up_required', 'Follow-up'),
+            ('date', 'Date'),
+        ],
+        form_sections=[
+            ('Observation Details', ['site', 'task', 'observation_type', 'controls_verified', 'findings', 'follow_up_required', 'attachments', 'file']),
+        ],
+    )
+
+
+def pto_chemicals_page(request):
+    pto_field_map = {
+        'chemicals_hazardous_substances': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_08_compliant'],
+        'work_at_heights': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_07_compliant'],
+        'energy_isolation': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_08_compliant'],
+        'equipment_safeguards_protective_devices': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_06_compliant'],
+        'identify_control_hazards': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_05_compliant'],
+        'mobile_equipment_light_vehicles': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_08_compliant'],
+        'competent_capable_controlled': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_08_compliant'],
+        'safe_operation_forklifts': ['observer_name', 'employee_name', 'shift_mining', 'reason_for_observation', 'step_01_compliant', 'step_23_compliant'],
+    }
+
+    pto_step_map = {
+        'chemicals_hazardous_substances': [
+            'Handle or work around hazardous substances if authorized to do so, and in accordance with prescribed controls.',
+            'Always obtain, read, understand and follow the instructions on the Safety Data Sheet (SDS) for the hazardous substance that you will be handling.',
+            'Never handle or use chemicals or hazardous substances if you have not been trained and authorized in their use, handling, storage and disposal.',
+            'Ensure a hot work permit is issued and use continuous LEL gas monitoring when introducing an ignition source to work areas where flammable materials may be present.',
+            'Wear appropriate personal gas detection monitors when required and leave the work area immediately if the alarm begins to sound.',
+            'Only access explosives storage areas and/or handle explosives if authorized to do so.',
+            'Always evacuate the blast danger zone before blasting and check blasted material for possible misfires before loading/excavating.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'work_at_heights': [
+            'Protect self and others against a fall when working at heights (1.8m or more) by always maintaining 100 percent tie-off.',
+            'Ensure a fall protection plan and a rescue plan is in place and communicated to all affected personnel.',
+            'Use a certified fall protection system with full body harness, lanyard and proper anchor points when working at heights.',
+            'Conduct pre-use inspections of fall protection system components and immediately remove and destroy damaged items.',
+            'Ensure all tools and loose objects are stored and used in a secure manner to prevent dropped objects.',
+            'Ensure areas below elevated work in progress are controlled (for example barricades and/or sentries) to prevent pedestrian access.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'energy_isolation': [
+            'Verify effective equipment energy isolations and remain out of the line of fire.',
+            'Identify all energy sources including electrical, mechanical, hydraulic, pneumatic, chemical, nuclear, kinetic and gravitational.',
+            'Ensure all energized sources are properly isolated and any stored energy is discharged prior to starting work.',
+            'Secure using your personal lock and tags any isolation point that could inadvertently be returned to an energized state during work.',
+            'Verify the isolation effectiveness (bump test for zero energy state) prior to starting work.',
+            'Ensure only authorized personnel are permitted to access hazardous energy areas.',
+            'Ensure that all guards and safety systems are restored when the work is completed.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'equipment_safeguards_protective_devices': [
+            'Authorized and qualified personnel alter, bypass, inhibit or remove equipment safeguards and protective devices.',
+            'Operate equipment according to manufacturer specifications, with safeguards and protective devices in place.',
+            'Disconnect tools when not in use, before servicing, and before changing components or accessories.',
+            'Ensure all emergency shutoffs are clearly identified, visible and accessible.',
+            'Follow lockout/tagout procedures when required to alter, bypass or inhibit equipment safeguards and protective devices.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'identify_control_hazards': [
+            'Identify and control hazards to maintain a safe workplace and use the STOP UNSAFE WORK AUTHORITY to keep self and others safe.',
+            'Conduct a hazard assessment and implement any required controls prior to the commencement of work.',
+            'Communicate, and resume work with any newly identified controls in place to minimize risks As Low As Reasonably Practicable (ALARP).',
+            'Recognize when a formal Management of Change (MOC) is needed and notify your supervisor to initiate proper risk assessment, planning and change communication efforts.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'mobile_equipment_light_vehicles': [
+            'Obey traffic rules, drive to road conditions and avoid distractions while driving.',
+            'Ensure vehicle safety devices are in good working order and properly used (for example seat belts, back up alarms, headlights, flags and strobe lights, kill switches).',
+            'Do not use your cell phone or other electronic devices (except approved communication radios) when operating a vehicle or equipment.',
+            'Secure loads and loose items that could become a projectile with a sudden turn or stop.',
+            'Obey posted signage and drive according to road and weather conditions.',
+            'Prevent vehicle movement when parking through an appropriate combination of wheel chocks, parking ditches, wheels turned into berms or walls, and equipment GETs lowered into the ground.',
+            'Ensure pedestrians stand clear of mobile equipment travel path and operating radius.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+        'safe_operation_forklifts': [
+            'Does the operator have appropriate competency to operate a forklift? Check for certification or valid operating permit.',
+            'Is the operator of the forklift fit for work (for example not fatigued or medically ill)?',
+            'Has the operator completed forklift prestart inspection correctly, and any identified defects rectified before operating the forklift?',
+            'Has the operator completed a FLRA and ensured the work area is free from items that may constitute a hazard while the forklift is in operation?',
+            'Did the operator correctly sound horns (one horn before starting the engine, two horns before moving forward, and three horns before reversing)?',
+            'Is the forklift operator always using the seat belt to keep all body parts inside the driver compartment while operating the forklift?',
+            'Is the weight of the load within the Safe Working Load (SWL) of the forklift?',
+            'Are the forks inserted as far under the load as possible?',
+            'Is the lifted load vertical or tilted backwards, as securely as required?',
+            'If pallets containing multiple items are being lifted, are all items securely strapped or contained on the pallet?',
+            'Is there any person supporting, working, or walking under suspended load of the forklift?',
+            'If the load is high and blocking vision, is the operator driving in reverse?',
+            'When approaching a corner, is the operator slowing down and sounding a horn?',
+            'Is the operator always giving right of way to pedestrians?',
+            'Is the operator driving to road conditions (follow posted speed limits, slow down at cross aisles, sharp curves, ramps, dips, and wet or slippery surfaces)?',
+            'Is the forklift turned off with forks lowered to the floor, park brakes set, and key removed from ignition when not in use or left unattended?',
+            'Are forks raised and clear off the ground, with mast tilted back slightly as the forklift travels?',
+            'Has the area where the forklift is operating been barricaded to restrict access?',
+            'Is the operator maintaining three-point contact when mounting or dismounting from the forklift?',
+            'If fork extensions are being used, are they approved by a Mechanical Engineer?',
+            'If fork extensions are being used, are they secured with a retainer (heel hook, pins, etc.)?',
+            'If fork extensions were in use, have they been removed from the forklift immediately after the task?',
+            'If not in use, is the forklift parked in a designated area with forks lowered and tilted slightly forward without posing a hazard in walkways or aisles?',
+        ],
+        'competent_capable_controlled': [
+            'Carry out work for which authorized, trained, qualified and fit to perform.',
+            'Take personal responsibility for maintaining safe working conditions and for ensuring hazard controls are effective. STOP any job that you believe is unsafe.',
+            'Work according to established job instructions, practices and procedures and know what to do in case of emergency.',
+            'Obey all signs and barriers, use the right tools and equipment and wear the correct PPE for the task.',
+            'Be fit for duty and unaffected by medications, drugs or alcohol and manage fatigue while on the job.',
+            'Notify your supervisor if you feel you are not competent or capable of performing work safely.',
+            'Notify a supervisor/manager if you are aware of, or reasonably suspect, another worker is not fit for duty.',
+            'STOP any work that does not comply with the safety rules, regulations and/or procedures and notify your Supervisor immediately.',
+        ],
+    }
+
+    pto_meta_map = {
+        'chemicals_hazardous_substances': {
+            'title': 'CHEMICALS & HAZARDOUS SUBSTANCES FPC PTO',
+            'ref': '0623',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'work_at_heights': {
+            'title': 'WORK AT HEIGHTS FPC PTO',
+            'ref': '0632',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'energy_isolation': {
+            'title': 'ENERGY ISOLATION FPC PTO',
+            'ref': '0627',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'equipment_safeguards_protective_devices': {
+            'title': 'EQUIPMENT SAFEGUARDS & PROTECTIVE DEVICES FPC PTO',
+            'ref': '0628',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'identify_control_hazards': {
+            'title': 'IDENTIFY AND CONTROL HAZARDS FPC PTO',
+            'ref': '0629',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'mobile_equipment_light_vehicles': {
+            'title': 'MOBILE EQUIPMENT AND LIGHT VEHICLES FPC PTO',
+            'ref': '0630',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+        'safe_operation_forklifts': {
+            'title': 'SAFE OPERATION OF FORKLIFT PTO',
+            'ref': '0633',
+            'version': '00',
+            'authored_by': 'Christopher Mumba',
+            'approved_by': 'Jurrius Wessel',
+            'date': '23/01/2023',
+        },
+        'competent_capable_controlled': {
+            'title': 'COMPETENT, CAPABLE AND CONTROLLED FPC PTO',
+            'ref': '-',
+            'version': '00',
+            'authored_by': 'E Hinamanjolo',
+            'approved_by': 'T Zulu',
+            'date': '15/02/2022',
+        },
+    }
+
+    return _module_page(
+        request,
+        model=PTOChemicalHazardousSubstance,
+        form_class=PTOChemicalHazardousSubstanceForm,
+        title='PTO - Chemicals & Hazardous Substances',
+        description='Capture all PTO forms from one page by selecting PTO type, then filling required fields.',
+        route_name='pto_chemicals_page',
+        list_fields=[
+            ('pto_type', 'PTO Type'),
+            ('employee_name', 'Employee'),
+            ('observer_name', 'Observer'),
+            ('competency_result', 'Outcome'),
+            ('follow_up_pto_recommended', 'Follow-up PTO'),
+            ('created_at', 'Created'),
+        ],
+        form_sections=[
+            ('PTO Selection', ['site', 'pto_type']),
+            ('Observer Details', ['observer_name', 'observer_employee_id', 'observer_job_title', 'observer_department', 'observer_date', 'observer_signature']),
+            ('Employee Details', ['employee_name', 'employee_id', 'employee_job_title', 'employee_department', 'employee_observed_at', 'employee_signature']),
+            ('Shift and Observation Context', ['shift_mining', 'shift_other', 'crew_mining', 'crew_other', 'reason_for_observation', 'notification_of_pto']),
+            ('Evaluation and Follow-up', ['competency_result', 'forwarded_to_hr', 'follow_up_pto_recommended', 'employee_superintendent_name', 'employee_superintendent_signature']),
+            ('Action Plan', ['action_1', 'action_1_responsible', 'action_1_by_when', 'action_2', 'action_2_responsible', 'action_2_by_when', 'action_3', 'action_3_responsible', 'action_3_by_when']),
+            ('Standardized Task Steps', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments']),
+        ],
+        extra_context={
+            'template_field_map': pto_field_map,
+            'template_step_map': pto_step_map,
+            'template_meta_map': pto_meta_map,
+        },
+    )
+
+
+def ccv_page(request):
+    ccv_field_map = {
+        'mobile_equipment': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_18_compliant'],
+        'rotating_equipment': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_13_compliant'],
+        'fall_from_heights': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_22_compliant'],
+        'confined_space': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_13_compliant'],
+        'fall_of_ground': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_16_compliant'],
+        'hazardous_substances_chemicals': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_11_compliant'],
+        'stored_energy': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_14_compliant'],
+        'lifting': ['assessor_name', 'location', 'department', 'step_01_compliant', 'step_16_compliant'],
+    }
+
+    ccv_step_map = {
+        'mobile_equipment': [
+            'Is the team member alert, rested, and free of distractions?',
+            'Is team member aware of and complying with posted speed limits and changing road conditions?',
+            'Are electronic devices secured and put away?',
+            'Are visibility accessories (for example strobe lights, reflective tape, buggy whip) installed, functional, and maintained?',
+            'Are all safety critical items installed and functioning properly prior to operating equipment (for example tires, brakes, steering, horn, cameras, maintenance up-to-date, fatigue monitoring)?',
+            'Have all seatbelts been inspected for damage and determined to be in good operable condition and worn correctly?',
+            'Has interaction between vehicles and pedestrians been minimized by physical barriers, designated walkways/travel ways, and work area exclusion zones?',
+            'In parking and other congested traffic areas, are berms installed and maintained to minimize vehicle interactions?',
+            'Are vehicles operating at the required separation distance per Traffic Management Plan?',
+            'Do employees avoid entering equipment blind spots unless positive communication is established and equipment is shut down and secured from movement?',
+            'Are berms built with competent material to the mid-axle height of the largest vehicle travelling the area to prevent vehicles from falling over the edge or overturning?',
+            'Is the vehicle or equipment parked in a designated or segregated parking area?',
+            'Are loads and loose items that could become a hazard or risk secured?',
+            'Is the park/service brake set, other suitable brakes applied, and the vehicle blocked against movement?',
+            'Are radios installed, present, and operational in vehicles/equipment in required areas?',
+            'Is positive two-way communication made when passing equipment or entering exclusion zones?',
+            'Is the equipment fitted with the appropriate fire suppression system and/or fire extinguisher?',
+            'Has the employee inspected the fire suppression system and/or fire extinguisher(s) prior to operation?',
+        ],
+        'rotating_equipment': [
+            'Has the worker been trained and authorized, and does the worker understand the components of working around rotating equipment?',
+            'Is guarding and/or a barrier present and does it meet the standard?',
+            'If an authorized bypass needs to occur, has communication been made to all affected personnel?',
+            'Is the exclusion zone demarcated with the hazard and precautionary actions identified?',
+            'Is there an authorized process in place for removal of guards, when necessary, in order to perform live testing?',
+            'Is worker clear of potential line of fire situations?',
+            'Are there designated covered walkways under conveyor belts?',
+            'Are barricades in place where there is the potential for falling objects?',
+            'Is the emergency shut-off device visible, accessible, and properly maintained?',
+            'If removed, have all guards and safety systems been restored when the work is completed?',
+            'Have individuals performed effective mechanical blocking, and are the mechanical blocks approved and safe for use?',
+            'Are jacks and blocks designed, adequate, and positioned correctly for the task?',
+            'During maintenance, are the articulation and bed locks in place to block against movement?',
+        ],
+        'fall_from_heights': [
+            'Have you completed a risk assessment prior to starting the working at heights job?',
+            'Has the Fall from Heights permit been completed, signed off, and implemented correctly for non-routine tasks, and are safety helmets secured using a chinstrap?',
+            'Are all objects, tools and equipment secured with an approved tether device to prevent them from falling?',
+            'If required, are exclusion zones established on lower levels (for example barricades, barriers, guards) to prevent individuals from being struck by a falling object?',
+            'Is there a physical barrier or barricade with signage in place that will mitigate the risk?',
+            'Is anyone working alone?',
+            'Has the worker been trained and authorized, and does the worker understand the components of fall protection?',
+            'Have the key components been maintained and inspected by the worker prior to use?',
+            'Was the clearance fall distance calculated prior to starting work?',
+            'While using a Fall Restraint System, is the anchor point capable of withstanding the expected force?',
+            'Is the proper fall protection system being used for the task (for example prevention, restraint, arrest, full body harness, proper length shock-absorbing lanyard, and trauma straps)?',
+            'Are Fall Arrest Systems attached to the harness D-ring in the middle of the back and is the tie off able to withstand 22.5kN or 5,000 pounds of force?',
+            'Where the work method requires persons to detach and re-attach at height, is a dual fall arrest or dual fall restraint system being used so at least one connection point is always maintained?',
+            'Are work platforms tagged correctly, inspected, certified, maintained, and in proper working condition suitable for the task?',
+            'Is the aerial lift, scissor lift, or other elevated work platform equipped with secured floors, guardrails, and toe-boards to prevent items from falling to lower surfaces?',
+            'Has the ladder been inspected prior to use and is it the correct height and material for the job?',
+            'Do work platforms appear free from signs of overloading and in good working order?',
+            'Are workers on the mobile work platform properly protected with a fall prevention or fall arrest system?',
+            'Are weather and terrain conditions acceptable to keep the working platform stable?',
+            'Do employees have means to summon help or self-rescue while using fall protection?',
+            'Is more than one employee working on the task while using fall protection, and are any employees working alone?',
+            'Is a fall protection plan and a rescue plan in place and communicated to all affected personnel?',
+        ],
+        'confined_space': [
+            'Has the Confined Space Permit been completed and implemented correctly?',
+            'Is the attendant/spotter present while confined space is occupied?',
+            'Is the confined space attendant/spotter maintaining a register of people entering and exiting?',
+            'Are all confined space entry and exit locations guarded or barricaded and labeled to prevent unauthorized entry?',
+            'Is there effective communication between the confined space spotter/attendant and entrants?',
+            'Has a risk assessment been conducted and have proper controls been established for each risk identified?',
+            'Has the appropriate gas monitor been selected, pre-use bump tested, and validly calibrated for use based on the identified hazards?',
+            'Is the atmosphere being tested, results documented per confined space permit, and appropriate controls implemented as per plan?',
+            'Have all sources of energy been identified, isolated by each occupant\'s personal lock, tagged, tried out, and in a zero-energy state?',
+            'Do attendant and entrants have means to summon help and ability to self-rescue?',
+            'Are there at least two employees (no one working alone) while in the confined space?',
+            'Is the rescue plan and all required gear in place?',
+            'Do the attendants and entrants understand events that could trigger an evacuation or rescue and know how to initiate emergency response?',
+        ],
+        'fall_of_ground': [
+            'Has the worker been trained and authorized, and does the worker understand the components of Fall of Ground activity?',
+            'Is the worker familiar with the FRA and critical controls?',
+            'Have identified ground control hazards and mitigations been communicated from geotechnical to supervisors and frontline operations between shifts?',
+            'Are the highwalls scaled and free of debris, and are the catch benches adequate?',
+            'Are team members maintaining loading faces at a safe working height/angle and avoiding positions between mining equipment and the face?',
+            'Is the highwall/stockpile built and maintained to plan design?',
+            'Are team members entering restricted areas without permission (for example base and crest of highwalls/stockpiles, benches, mining faces, dumps and blasting areas)?',
+            'Is the surface water control installed and maintained according to design and clear of obstructions (for example storm water drains)?',
+            'Is there a barrier (for example berm or jersey barriers) to stop people and mobile equipment from entering areas where material can fall from a high wall/excavation?',
+            'Are restricted areas demarcated and signed, and is employee entry prohibited without authorization?',
+            'Are employees kept out of equipment swing radius or blind spots unless positive communication is established, equipment is shut down, and implements are lowered to the ground?',
+            'Do installed trenching controls meet or exceed Excavation and Trenching Standard requirements (for example shoring, sloping, benching designs, or hydro excavating)?',
+            'Is a ground disturbance/dig permit at the work site and filled out correctly?',
+            'Do installed trenching controls meet or exceed Excavation and Trenching Standard requirements for geotechnical inspection and monitoring systems?',
+            'Is a ground disturbance/dig permit at the work site and filled out correctly for geotechnical inspection and monitoring systems?',
+            'Do employees understand the emergency procedures (for example seismic, primary/secondary escape)?',
+        ],
+        'hazardous_substances_chemicals': [
+            'Has the worker been trained and authorized, and does the worker understand the components of working with hazardous materials?',
+            'Do employees understand the hazards associated with the chemical(s) they will be handling or potentially exposed to (for example health hazards, chemical reactivity, flammability)?',
+            'Do employees know where to locate the Safety Data Sheets (SDS)?',
+            'Are employees wearing the correct type of PPE for the task being performed?',
+            'Do team members know and understand the procedure to follow when unknown substance is found?',
+            'Is the chemical compatible with the containers in which it is transferred/stored (for example leaks or containment)?',
+            'Are containers/pipes appropriately labeled and clearly legible, and where applicable is the direction of flow identified?',
+            'Is the transfer/handling area easily accessible with proper containment measures in place?',
+            'Have the contents of the delivery truck been verified, and is the delivery driver following safe loading/unloading practices?',
+            'Are hazardous substances adequately stored and segregated based on SDS storage and segregation requirements?',
+            'Are pipes or other distribution systems used for hazardous substances clearly identified?',
+        ],
+        'stored_energy': [
+            'Has the worker been trained and authorized, and does the worker understand the components of energy isolation?',
+            'Have all energy sources been identified, isolated, and de-energized?',
+            'Have all isolation points been accounted for?',
+            'Are workers using the appropriate locks/tags for the task performed?',
+            'Have locks, tags, and other isolation devices been installed so they cannot be bypassed or defeated?',
+            'Has the tryout step been completed and has zero energy been verified?',
+            'Has the tryout step been completed and has zero energy been verified?',
+            'Have all required employees locked out?',
+            'Have locks, tags, and other isolation devices been installed so they cannot be bypassed or defeated?',
+            'Have all required employees locked out?',
+            'Are workers using the appropriate locks/tags for the task performed?',
+            'Are guards, barriers, and barricades properly installed to protect personnel from uncontrolled energy release?',
+            'Are deadman switches, emergency stops, and pull cords confirmed as functional prior to work commencing?',
+            'Does the work plan address reinstallation of guards, barriers, and barricades prior to return to service?',
+        ],
+        'lifting': [
+            'Has the worker been trained and authorized, and does the worker understand the lifting operations?',
+            'Does the rigger have knowledge, training and competence in rigging and understand their classification according to the type of load and criticality of the manoeuvres, safe rigging practices, signalling and equipment inspection?',
+            'Is there an approved and signed-off Lift Plan available for the operation?',
+            'Has a load analysis been completed and documented?',
+            'Are all safety critical items installed and functioning properly prior to operating equipment (for example two-way radio, seatbelt, cameras, maintenance up to date)?',
+            'Have exclusion zones been clearly barricaded and demarcated?',
+            'Are there procedures in place to ensure no unauthorized personnel enter the exclusion zone?',
+            'Is all lifting equipment certified, inspected, and in good working condition?',
+            'Are lifting accessories (for example slings, shackles, ropes) inspected/certified and undamaged?',
+            'Has the employee inspected the fire suppression system and/or fire extinguisher(s) prior to operation?',
+            'Is there a clear communication protocol in place for the lifting operation?',
+            'Is positive communication made when passing equipment or when entering exclusion zones?',
+            'Is there a designated person-in-charge (PIC) overseeing the operation?',
+            'Have all people involved in or affected by the lift been briefed?',
+            'Has the area been checked for overhead electrical lines, and have measures been taken to prevent electrocution?',
+            'Have pre-lift checks been performed to identify and mitigate potential hazards?',
+        ],
+    }
+
+    ccv_meta_map = {
+        'mobile_equipment': {
+            'title': 'MOBILE EQUIPMENT CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0635',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'rotating_equipment': {
+            'title': 'ROTATING EQUIPMENT CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0638',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'fall_from_heights': {
+            'title': 'FALL FROM HEIGHTS CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0632',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'confined_space': {
+            'title': 'CONFINED SPACE CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0633',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'fall_of_ground': {
+            'title': 'FALL OF GROUND CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0634',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'hazardous_substances_chemicals': {
+            'title': 'HAZARDOUS SUBSTANCES AND CHEMICALS CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0636',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'stored_energy': {
+            'title': 'STORED ENERGY CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0637',
+            'version': '01',
+            'date_of_issue': '05/15/2024',
+            'date_of_next_review': '05/14/2026',
+        },
+        'lifting': {
+            'title': 'LIFTING CRITICAL CONTROL VERIFICATION FORM',
+            'ref': 'FM0737',
+            'version': '01',
+            'date_of_issue': '12/12/2024',
+            'date_of_next_review': '12/12/2026',
+        },
+    }
+
+    return _module_page(
+        request,
+        model=CCVCriticalControlVerification,
+        form_class=CCVCriticalControlVerificationForm,
+        title='CCV - Critical Control Verification',
+        description='Capture CCV forms from one page by selecting CCV type, then completing the relevant controls.',
+        route_name='ccv_page',
+        list_fields=[
+            ('ccv_type', 'CCV Type'),
+            ('assessor_name', 'Assessor'),
+            ('location', 'Location'),
+            ('department', 'Department'),
+            ('created_at', 'Created'),
+        ],
+        form_sections=[
+            ('CCV Selection', ['site', 'ccv_type']),
+            ('Assessment Header', ['assessor_name', 'assessment_datetime', 'location', 'department', 'section']),
+            ('Critical Control Performance Requirements', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments']),
+            ('Recommendations', ['action_1', 'action_1_responsible', 'action_1_due_date', 'action_2', 'action_2_responsible', 'action_2_due_date', 'action_3', 'action_3_responsible', 'action_3_due_date']),
+        ],
+        extra_context={
+            'template_field_map': ccv_field_map,
+            'template_step_map': ccv_step_map,
+            'template_meta_map': ccv_meta_map,
+        },
+    )
+
+
+def checklists_page(request):
+    checklist_field_map = {
+        'Daily': ['site', 'inspection_area', 'checklist_title', 'ppe_inspection', 'fire_safety_check', 'housekeeping_checked', 'operational_status'],
+        'Weekly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'operational_status'],
+        'Monthly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'first_aid_kit_stocked', 'actions_required', 'next_due_date'],
+        'LV Vehicle': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'fire_safety_check', 'comments', 'operational_status'],
+        'Lighting Tower': ['site', 'drill_rig_number', 'lighting_tower_number', 'serial_number', 'step_01_compliant', 'step_29_compliant', 'operational_status'],
+        'Drilling Machine Surface': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'safety_signage_visible', 'actions_required', 'operational_status'],
+        'Environmental': ['site', 'inspection_area', 'checklist_title', 'housekeeping_checked', 'findings', 'actions_required', 'operational_status'],
+        'Generator': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'fire_safety_check', 'next_due_date', 'operational_status'],
+        'Other Operational': ['site', 'checklist_title', 'equipment_id', 'inspection_area', 'findings', 'actions_required', 'comments'],
+    }
+
+    checklist_step_map = {
+        'Lighting Tower': [
+            'Yellow door Assy condition.',
+            'Mudguard condition.',
+            'Lifting Jack top wind condition.',
+            'Lifting jack side wind drawbar condition.',
+            'Mast Assy condition.',
+            'Outlet panel condition.',
+            'Wheel/Rim condition.',
+            'Emergency stop bottom condition.',
+            'Roof Assy condition.',
+            'Radiator coolant level.',
+            'Battery and terminals condition.',
+            'Oil level.',
+            'Lubricant leaks.',
+            'Diesel level.',
+            'Diesel tank condition.',
+            'Control panel condition.',
+            'Water pump condition.',
+            'Oil dipstick condition.',
+            'Hour meter condition.',
+            'Fuel pump Assy condition.',
+            'Start motor condition.',
+            'Alternator belt condition.',
+            'Fan Assy condition.',
+            'LED condition.',
+            'Led floodlight condition.',
+            'Driver condition.',
+            'Coil cord condition.',
+            'Winch RBW Assy condition.',
+            'Last Service.',
+        ],
+    }
+
+    checklist_meta_map = {
+        'Daily': {
+            'title': 'DAILY SAFETY CHECKLIST',
+            'ref': 'CHK-DAILY',
+            'version': '01',
+        },
+        'Weekly': {
+            'title': 'WEEKLY SAFETY CHECKLIST',
+            'ref': 'CHK-WEEKLY',
+            'version': '01',
+        },
+        'Monthly': {
+            'title': 'MONTHLY SAFETY CHECKLIST',
+            'ref': 'CHK-MONTHLY',
+            'version': '01',
+        },
+        'LV Vehicle': {
+            'title': 'LV VEHICLE CHECKLIST',
+            'ref': 'CHK-LV',
+            'version': '01',
+        },
+        'Lighting Tower': {
+            'title': 'LIGHTING TOWER INSPECTION CHECK LIST',
+            'document_no': 'LEOS-MAI-INS-02',
+            'revision_no': '1.0',
+            'effective_date': '19/03/2026',
+            'status': 'Current',
+        },
+        'Drilling Machine Surface': {
+            'title': 'DRILLING MACHINE SURFACE CHECKLIST',
+            'ref': 'CHK-DRILL',
+            'version': '01',
+        },
+        'Environmental': {
+            'title': 'ENVIRONMENTAL CHECKLIST',
+            'ref': 'CHK-ENV',
+            'version': '01',
+        },
+        'Generator': {
+            'title': 'GENERATOR CHECKLIST',
+            'ref': 'CHK-GEN',
+            'version': '01',
+        },
+        'Other Operational': {
+            'title': 'OTHER OPERATIONAL CHECKLIST',
+            'ref': 'CHK-OTHER',
+            'version': '01',
+        },
+    }
+
+    return _module_page(
+        request,
+        model=SafetyChecklist,
+        form_class=SafetyChecklistForm,
+        title='Safety Checklists',
+        description='Complete operational checklists including LV vehicles, drilling machine surface, environmental and generator checks.',
+        route_name='checklists_page',
+        auto_user_fields=['completed_by'],
+        list_fields=[
+            ('checklist_type', 'Type'),
+            ('checklist_title', 'Checklist Title'),
+            ('equipment_id', 'Equipment/Asset'),
+            ('site', 'Site'),
+            ('date_completed', 'Date Completed'),
+            ('operational_status', 'Operational Status'),
+        ],
+        form_sections=[
+            ('Checklist Header', ['site', 'checklist_type', 'checklist_title', 'equipment_id', 'inspection_area', 'document_number', 'revision_number', 'effective_date', 'document_status', 'drill_rig_number', 'lighting_tower_number', 'serial_number']),
+            ('Inspection Items', ['ppe_inspection', 'fire_safety_check', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'first_aid_kit_stocked', 'housekeeping_checked']),
+            ('Lighting Tower Inspection Points', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments', 'step_24_compliant', 'step_24_comments', 'step_25_compliant', 'step_25_comments', 'step_26_compliant', 'step_26_comments', 'step_27_compliant', 'step_27_comments', 'step_28_compliant', 'step_28_comments', 'step_29_compliant', 'step_29_comments']),
+            ('Findings and Actions', ['operational_status', 'findings', 'actions_required', 'verified_by', 'next_due_date']),
+            ('Signatures', ['operator_signature', 'site_supervisor_signature', 'maintenance_supervisor_signature']),
+            ('Deviation Report', ['deviation_date', 'deviation_problem', 'deviation_reported_to', 'deviation_action_taken']),
+            ('Comments and Evidence', ['comments', 'checklist_file']),
+        ],
+        extra_context={
+            'template_field_map': checklist_field_map,
+            'template_step_map': checklist_step_map,
+            'template_meta_map': checklist_meta_map,
+        },
+    )
+
+
+def toolbox_talks_page(request):
+    return _module_page(
+        request,
+        model=ToolboxTalk,
+        form_class=ToolboxTalkForm,
+        title='Toolbox Talks',
+        description='Plan and record toolbox talks, hazards discussed, agreed controls, attendance and follow-ups.',
+        route_name='toolbox_talks_page',
+        auto_user_fields=['conducted_by'],
+        list_fields=[
+            ('title', 'Title'),
+            ('talk_date', 'Talk Date'),
+            ('site', 'Site'),
+            ('facilitator_name', 'Facilitator'),
+            ('attendance_count', 'Attendance'),
+            ('follow_up_required', 'Follow-up'),
+        ],
+        form_sections=[
+            ('Talk Header', ['site', 'title', 'talk_date', 'facilitator_name', 'department', 'work_group']),
+            ('Topic and Risk Discussion', ['topic_details', 'hazards_discussed', 'controls_agreed']),
+            ('Attendance', ['attendance_count', 'attendees']),
+            ('Actions and Follow-up', ['action_items', 'follow_up_required', 'follow_up_owner', 'follow_up_due_date']),
+            ('Evidence', ['toolbox_file']),
+        ],
+    )
+
+
+def employees_page(request):
+    return _module_page(
+        request,
+        model=Employee,
+        form_class=EmployeeForm,
+        title='Employees',
+        description='Manage employee records for the selected tenant.',
+        route_name='employees_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('name', 'Name'),
+            ('position', 'Position'),
+            ('department', 'Department'),
+            ('site', 'Site'),
+            ('user', 'User Account'),
+        ],
+        form_sections=[
+            ('Identity', ['site', 'name', 'user', 'position', 'department']),
+            ('Contacts', ['contact_number', 'emergency_contact', 'employee_file']),
+            ('Certifications', ['certifications']),
+        ],
+    )
+
+
+def contractors_page(request):
+    return _module_page(
+        request,
+        model=Contractor,
+        form_class=ContractorForm,
+        title='Contractors',
+        description='Register and manage contractor onboarding records.',
+        route_name='contractors_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('name', 'Name'),
+            ('company', 'Company'),
+            ('site', 'Site'),
+            ('onboarded', 'Onboarded'),
+            ('onboarding_date', 'Onboarding Date'),
+        ],
+        form_sections=[
+            ('Contractor Details', ['site', 'name', 'company', 'onboarded', 'certifications']),
+            ('Attachments', ['id_document', 'contractor_file']),
+        ],
+    )
+
+
+def certifications_page(request):
+    return _module_page(
+        request,
+        model=Certification,
+        form_class=CertificationForm,
+        title='Certifications',
+        description='Track worker and contractor certifications.',
+        route_name='certifications_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('name', 'Certification'),
+            ('employee', 'Employee User'),
+            ('issue_date', 'Issue Date'),
+            ('expiry_date', 'Expiry Date'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Certification Record', ['site', 'employee', 'name', 'issuing_body', 'issue_date', 'expiry_date', 'certificate_file']),
+        ],
+    )
+
+
+def training_page(request):
+    return _module_page(
+        request,
+        model=TrainingMatrix,
+        form_class=TrainingMatrixForm,
+        title='Training Matrix',
+        description='Assign and monitor training items for employees.',
+        route_name='training_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('title', 'Title'),
+            ('status', 'Status'),
+            ('training_date', 'Training Date'),
+            ('due_date', 'Due Date'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Training Overview', ['site', 'title', 'description', 'status', 'assigned_employees']),
+            ('Timeline and Evidence', ['training_date', 'due_date', 'certificate_required', 'training_material', 'certificate_upload']),
+        ],
+    )
+
+
+def documents_page(request):
+    return _module_page(
+        request,
+        model=Document,
+        form_class=DocumentForm,
+        title='Documents',
+        description='Upload SDS and SOP files from the front-end.',
+        route_name='documents_page',
+        user_role_min='supervisor',
+        auto_user_fields=['uploaded_by'],
+        list_fields=[
+            ('name', 'Name'),
+            ('doc_type', 'Type'),
+            ('site', 'Site'),
+            ('upload_date', 'Uploaded On'),
+            ('uploaded_by', 'Uploaded By'),
+        ],
+        form_sections=[
+            ('Document Entry', ['site', 'name', 'doc_type', 'related_material', 'file']),
+        ],
+    )
+
+
+def materials_page(request):
+    return _module_page(
+        request,
+        model=Material,
+        form_class=MaterialForm,
+        title='Materials',
+        description='Manage material and safety data context by site.',
+        route_name='materials_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('name', 'Material'),
+            ('quantity', 'Quantity'),
+            ('unit', 'Unit'),
+            ('sds_available', 'SDS Available'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Material Details', ['site', 'name', 'description', 'date_received', 'quantity', 'unit', 'sds_available', 'material_file']),
+        ],
+    )
+
+
+def objectives_page(request):
+    return _module_page(
+        request,
+        model=Objective,
+        form_class=ObjectiveForm,
+        title='Objectives',
+        description='Create and update ISO objective tracking records.',
+        route_name='objectives_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('name', 'Objective'),
+            ('status', 'Status'),
+            ('current', 'Current'),
+            ('target', 'Target'),
+            ('due_date', 'Due Date'),
+        ],
+        form_sections=[
+            ('Objective Details', ['site', 'name', 'description', 'target', 'current', 'status', 'assigned_to', 'due_date', 'objective_file']),
+        ],
+    )
+
+
+def schedules_page(request):
+    return _module_page(
+        request,
+        model=ScheduleItem,
+        form_class=ScheduleItemForm,
+        title='Schedules',
+        description='Create recurring schedule items and due dates.',
+        route_name='schedules_page',
+        user_role_min='supervisor',
+        auto_user_fields=['created_by'],
+        list_fields=[
+            ('title', 'Title'),
+            ('module', 'Module'),
+            ('frequency', 'Frequency'),
+            ('next_due_date', 'Next Due'),
+            ('is_active', 'Active'),
+        ],
+        form_sections=[
+            ('Schedule Setup', ['site', 'title', 'description', 'module', 'frequency', 'interval_value']),
+            ('Timing', ['starts_on', 'next_due_date', 'last_completed_on', 'reminder_days_before']),
+            ('Ownership', ['assigned_to', 'is_active']),
+        ],
+    )
+
+
+def capa_page(request):
+    return _module_page(
+        request,
+        model=CAPAAction,
+        form_class=CAPAActionForm,
+        title='CAPA Actions',
+        description='Manage corrective and preventive actions from one page.',
+        route_name='capa_page',
+        user_role_min='supervisor',
+        auto_user_fields=['created_by'],
+        list_fields=[
+            ('title', 'Title'),
+            ('priority', 'Priority'),
+            ('status', 'Status'),
+            ('owner', 'Owner'),
+            ('due_date', 'Due Date'),
+        ],
+        form_sections=[
+            ('Action Details', ['site', 'title', 'description', 'priority', 'status', 'due_date', 'owner']),
+            ('Root Cause and Actions', ['root_cause', 'immediate_correction', 'corrective_action', 'preventive_action', 'effectiveness_review']),
+            ('References and Verification', ['incident', 'observation', 'safety_checklist', 'objective', 'verified_by', 'verification_date', 'closed_on']),
+        ],
+    )
+
+
+def medical_profiles_page(request):
+    return _module_page(
+        request,
+        model=MedicalProfile,
+        form_class=MedicalProfileForm,
+        title='Medical Profiles',
+        description='Maintain worker fitness and surveillance profile records.',
+        route_name='medical_profiles_page',
+        user_role_min='site_manager',
+        list_fields=[
+            ('employee', 'Employee'),
+            ('fitness_status', 'Fitness'),
+            ('surveillance_required', 'Surveillance'),
+            ('next_medical_due', 'Next Due'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Medical Profile', ['site', 'employee', 'fitness_status', 'surveillance_required', 'next_medical_due', 'restrictions', 'notes']),
+        ],
+    )
+
+
+def medical_assessments_page(request):
+    return _module_page(
+        request,
+        model=MedicalAssessment,
+        form_class=MedicalAssessmentForm,
+        title='Medical Assessments',
+        description='Record periodic or pre-employment medical assessments.',
+        route_name='medical_assessments_page',
+        user_role_min='site_manager',
+        auto_user_fields=['assessor'],
+        list_fields=[
+            ('profile', 'Profile'),
+            ('exam_type', 'Exam Type'),
+            ('assessment_date', 'Assessment Date'),
+            ('outcome', 'Outcome'),
+            ('valid_until', 'Valid Until'),
+        ],
+        form_sections=[
+            ('Assessment Record', ['profile', 'exam_type', 'assessment_date', 'valid_until', 'outcome', 'provider', 'report_file', 'notes']),
+        ],
+    )

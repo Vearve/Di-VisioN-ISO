@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-c@ma%&_p1iqucd90hnr+#l$(wb9q^ddt4h-!gi66)o%8)m1%yi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['ohs-2.onrender.com', 'localhost']
+ALLOWED_HOSTS = ['ohs-2.onrender.com', 'localhost', '127.0.0.1']
 
 
 
@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'safety_mvp.ohs.middleware.CurrentTenantMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
