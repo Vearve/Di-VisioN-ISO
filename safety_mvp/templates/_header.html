@@ -168,9 +168,9 @@
         }
     });
 
-    // Sidebar drawer toggle for mobile
+    // Sidebar drawer toggle for mobile/tablet.
+    // Resolve sidebar element at interaction time because this header is rendered before page sidebars.
     const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const sidebarElement = document.querySelector('.sidebar');
     const sidebarOverlay = document.querySelector('.sidebar-overlay') || (() => {
         const overlay = document.createElement('div');
         overlay.className = 'sidebar-overlay';
@@ -178,17 +178,22 @@
         return overlay;
     })();
 
-    if (sidebarToggleBtn && sidebarElement) {
+    if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            const sidebarElement = document.querySelector('.sidebar');
+            if (!sidebarElement) return;
             sidebarElement.classList.toggle('drawer-open');
             sidebarOverlay.classList.toggle('active');
         });
-
-        sidebarOverlay.addEventListener('click', () => {
-            sidebarElement.classList.remove('drawer-open');
-            sidebarOverlay.classList.remove('active');
-        });
     }
+
+    sidebarOverlay.addEventListener('click', () => {
+        const sidebarElement = document.querySelector('.sidebar');
+        if (sidebarElement) {
+            sidebarElement.classList.remove('drawer-open');
+        }
+        sidebarOverlay.classList.remove('active');
+    });
 </script>
 {% endif %}
