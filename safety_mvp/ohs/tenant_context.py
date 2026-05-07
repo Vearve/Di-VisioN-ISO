@@ -84,10 +84,12 @@ def resolve_current_site(request, tenant=None):
 
 
 def user_role_for_tenant(user, tenant):
-    if not user.is_authenticated or tenant is None:
+    if not user.is_authenticated:
         return None
     if user.is_superuser:
         return "superuser"
+    if tenant is None:
+        return None
     membership = TenantMembership.objects.filter(
         user=user,
         tenant=tenant,
