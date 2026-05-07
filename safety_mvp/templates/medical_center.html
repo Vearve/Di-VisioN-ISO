@@ -26,6 +26,28 @@
         th { color: #6a7d86; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.05em; }
         .muted { color: #6a7d86; }
         @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 60px;
+                width: 270px;
+                height: calc(100vh - 60px);
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1001;
+            }
+            .sidebar.drawer-open {
+                transform: translateX(0);
+            }
+            .content { padding: 16px; }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar { width: 80vw; }
+            .content { padding: 12px; }
+        }
     </style>
 </head>
 <body>

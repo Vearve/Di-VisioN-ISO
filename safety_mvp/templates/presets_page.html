@@ -27,6 +27,28 @@
         .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; max-width: 680px; }
         .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
         @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .target-grid { grid-template-columns: 1fr; } }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 60px;
+                width: 270px;
+                height: calc(100vh - 60px);
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1001;
+            }
+            .sidebar.drawer-open {
+                transform: translateX(0);
+            }
+            .content { padding: 16px; }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar { width: 80vw; }
+            .content { padding: 12px; }
+        }
     </style>
 </head>
 <body>

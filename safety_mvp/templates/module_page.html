@@ -75,7 +75,36 @@
         .searchable-multiselect-option:hover { background: #f1f7f8; }
         .searchable-multiselect-option input { width: auto; margin: 0; }
         .searchable-multiselect-empty { padding: 10px; color: #6a7d86; font-size: 0.8rem; }
-        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1120px) {
+            .layout { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 60px;
+                width: 270px;
+                height: calc(100vh - 60px);
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1001;
+            }
+            .sidebar.drawer-open {
+                transform: translateX(0);
+            }
+            .grid { grid-template-columns: 1fr; }
+            .content { padding: 16px; }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar { width: 80vw; }
+            .content { padding: 12px; }
+            .header h1 { font-size: 1.1rem; }
+            table { min-width: 500px; }
+        }
     </style>
 </head>
 <body>
