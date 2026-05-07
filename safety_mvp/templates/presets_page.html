@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
+        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
+        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
+        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
+        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
+        .content { padding: 24px; }
+        .header { margin-bottom: 16px; }
+        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
+        .muted { color: #6a7d86; }
+        .panel { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); max-width: 680px; }
+        .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7d86; margin-top: 16px; margin-bottom: 6px; }
+        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; }
+        .btn { margin-top: 16px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; max-width: 680px; }
+        .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .target-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
+        <aside class="sidebar">
+            <div class="brand">Safety Command Center</div>
+
+            <div class="menu-group">
+                <h4>Main</h4>
+                <a href="/">Home</a>
+                <a href="/app/sites/">Sites and Projects</a>
+                <a href="/analytics/">Analytics</a>
+                <a href="/app/schedules/">Schedules</a>
+                <a href="/app/capa/">CAPA</a>
+                <a href="/app/medical-profiles/">Medical Profiles</a>
+                <a href="/app/medical-assessments/">Medical Assessments</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>People & Docs</h4>
+                <a href="/app/contractors/">Contractors</a>
+                <a href="/app/certifications/">Certifications</a>
+                <a href="/app/training/">Training</a>
+                <a href="/app/documents/">Documents</a>
+                <a href="/app/materials/">Materials</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Presets</h4>
+                <a href="#ccv" class="active">CCV Target Setup</a>
+                <a href="#pto">PTO Target Setup</a>
+                <a href="#flra">FLRA Target Setup</a>
+                <a href="#employees">Employees</a>
+                <a href="#objectives">Objectives</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Live Sidebar Counts</h4>
+                <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
+                <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
+                <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
+                <a href="/app/materials/">Materials ({{ sidebar_material_count }})</a>
+                <a href="/app/documents/">Documents ({{ sidebar_document_count }})</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="header">
+                <h1>{{ title }}</h1>
+                <p class="muted">{{ description }}</p>
+                <p class="muted">Tenant: {{ current_tenant.name|default:'-' }} | Site: {{ current_site.name|default:'All Sites' }} | Role: {{ current_role|default:'unknown' }}</p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <section class="panel">
+                <h3>Target Presets</h3>
+                <p class="muted">Set your operational targets once, then track progress from the dashboard.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="target-grid">
+                        <div id="ccv">
+                            <label for="id_ccv_target">CCV Target</label>
+                            {{ form.ccv_target }}
+                        </div>
+                        <div id="pto">
+                            <label for="id_pto_target">PTO Target</label>
+                            {{ form.pto_target }}
+                        </div>
+                        <div id="flra">
+                            <label for="id_flra_target">FLRA Target</label>
+                            {{ form.flra_target }}
+                        </div>
+                        <div id="employees">
+                            <label for="id_employee_target">Employee Target</label>
+                            {{ form.employee_target }}
+                        </div>
+                        <div id="objectives">
+                            <label for="id_objective_target">Objective Target</label>
+                            {{ form.objective_target }}
+                        </div>
+                    </div>
+                    <button class="btn" type="submit">Save Presets</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

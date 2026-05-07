@@ -10,11 +10,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
-        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
-        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; }
+        .layout { display: grid; grid-template-columns: 270px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; }
         .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }
-        .menu a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; }
-        .menu a.active, .menu a:hover { background: #204753; color: white; }
+        .menu-group { margin-top: 14px; }
+        .menu-group h4 { margin: 0 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
+        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; }
+        .menu-group a:hover, .menu-group a.active { background: #204753; color: white; }
         .content { padding: 24px; }
         .panel { margin-top: 16px; background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 14px; overflow-x: auto; }
         .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
@@ -30,16 +32,34 @@
     </style>
 </head>
 <body>
-    <div class="layout">
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
             <div class="brand">Safety Command Center</div>
-            <div class="menu">
+            <div class="menu-group">
+                <h4>Main</h4>
                 <a href="/">Home</a>
-                <a href="/app/schedules/">Schedules</a>
-                <a href="/app/capa/">CAPA Center</a>
-                <a href="/app/medical-profiles/">Medical Center</a>
+                <a href="/app/sites/">Sites &amp; Projects</a>
                 <a class="active" href="/analytics/">Analytics</a>
-                <a href="/admin/">Admin</a>
+                <a href="/schedules/">Schedules</a>
+                <a href="/capa/">CAPA Center</a>
+                <a href="/medical/">Medical Center</a>
+            </div>
+            <div class="menu-group">
+                <h4>People &amp; Docs</h4>
+                <a href="/app/contractors/">Contractors</a>
+                <a href="/app/certifications/">Certifications</a>
+                <a href="/app/training/">Training</a>
+                <a href="/app/documents/">Documents</a>
+                <a href="/app/materials/">Materials</a>
+            </div>
+            <div class="menu-group">
+                <h4>Presets</h4>
+                <a href="/app/presets/#ccv">CCV Target Setup</a>
+                <a href="/app/presets/#pto">PTO Target Setup</a>
+                <a href="/app/presets/#flra">FLRA Target Setup</a>
+                <a href="/app/presets/#employees">Employees</a>
+                <a href="/app/presets/#objectives">Objectives</a>
             </div>
         </aside>
 

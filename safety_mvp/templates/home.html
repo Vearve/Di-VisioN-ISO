@@ -38,7 +38,6 @@
         }
 
         .layout {
-            min-height: 100vh;
             display: grid;
             grid-template-columns: 270px 1fr;
         }
@@ -48,8 +47,8 @@
             color: var(--sidebar-text);
             padding: 24px 18px;
             position: sticky;
-            top: 0;
-            height: 100vh;
+            top: 60px;
+            height: calc(100vh - 60px);
             overflow-y: auto;
         }
 
@@ -300,13 +299,15 @@
     </style>
 </head>
 <body>
-    <div class="layout">
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
             <div class="brand">Safety Command Center</div>
 
             <div class="tenant-card">
                 {% if current_tenant %}
                     <strong>{{ current_tenant.name }}</strong>
+                    <div>Site: {{ current_site.name|default:"All Sites" }}</div>
                     <div>Role: {{ current_role|default:"Unknown" }}</div>
                 {% else %}
                     <strong>No Tenant</strong>
@@ -317,35 +318,26 @@
                         <a href="/?tenant={{ tenant.id }}">{{ tenant.name }}</a>
                     {% endfor %}
                 </div>
+                <div class="tenant-switch">
+                    <a href="/?site=all">All Sites</a>
+                    {% for site in available_sites %}
+                        <a href="/?site={{ site.id }}">{{ site.name }}</a>
+                    {% endfor %}
+                </div>
             </div>
 
             <div class="menu-group">
                 <h4>Main</h4>
                 <a class="active" href="/">Home</a>
-                <a href="/admin/">Dashboard</a>
-                {% if can_manage_tenant %}
-                <a href="/admin/ohs/tenant/">Tenants</a>
-                <a href="/admin/ohs/siteproject/">Sites & Projects</a>
-                {% endif %}
+                <a href="/app/sites/">Sites & Projects</a>
                 <a href="/schedules/">Schedules</a>
                 <a href="/analytics/">Analytics</a>
-            </div>
-
-            <div class="menu-group">
-                <h4>Operations</h4>
-                <a href="/app/incidents/">Incidents</a>
-                <a href="/app/jsa/">JSA</a>
-                <a href="/app/fra/">FRA</a>
-                <a href="/app/flra/">FLRA</a>
-                <a href="/app/observations/">Observations</a>
-                <a href="/app/toolbox-talks/">Toolbox Talks</a>
-                <a href="/app/checklists/">Checklists</a>
-                <a href="/app/capa/">CAPA Center</a>
+                <a href="/capa/">CAPA Center</a>
+                <a href="/medical/">Medical Center</a>
             </div>
 
             <div class="menu-group">
                 <h4>People & Docs</h4>
-                <a href="/app/employees/">Employees</a>
                 <a href="/app/contractors/">Contractors</a>
                 <a href="/app/certifications/">Certifications</a>
                 <a href="/app/training/">Training</a>
@@ -355,14 +347,21 @@
             </div>
 
             <div class="menu-group">
-                <h4>Plans</h4>
-                <a href="/app/objectives/">Objectives</a>
-                <a href="/admin/ohs/auditlog/">Audit Logs</a>
-                {% if can_manage_tenant %}
-                <a href="/admin/ohs/subscriptionplan/">Subscription Plans</a>
-                <a href="/admin/ohs/tenantsubscription/">Subscriptions</a>
-                <a href="/admin/ohs/tenantmembership/">Memberships</a>
-                {% endif %}
+                <h4>Presets</h4>
+                <a href="/app/presets/#ccv">CCV Target Setup</a>
+                <a href="/app/presets/#pto">PTO Target Setup</a>
+                <a href="/app/presets/#flra">FLRA Target Setup</a>
+                <a href="/app/presets/#employees">Employees</a>
+                <a href="/app/presets/#objectives">Objectives</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Live Sidebar Counts</h4>
+                <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
+                <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
+                <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
+                <a href="/app/materials/">Materials ({{ sidebar_material_count }})</a>
+                <a href="/app/documents/">Documents ({{ sidebar_document_count }})</a>
             </div>
         </aside>
 
@@ -372,7 +371,7 @@
                     <h1>ISO 45001 Program Dashboard</h1>
                     <p>Leading indicators, compliance counts, and progress by tenant and site.</p>
                 </div>
-                <a class="admin-link" href="/admin/">Admin Console</a>
+
             </section>
 
             <section class="metrics">
@@ -406,16 +405,14 @@
                     <h3>Quick Actions</h3>
                     <p class="muted">Create and manage recurrence tasks from one place.</p>
                     {% if can_manage_schedules %}
-                    <p><a class="admin-link" href="/admin/ohs/scheduleitem/add/">Create Schedule</a></p>
-                    <p><a class="admin-link" href="/admin/ohs/reminder/add/">Create Reminder</a></p>
+                    <p><a class="admin-link" href="/schedules/">Open Schedule Center</a></p>
                     {% endif %}
                     {% if can_manage_capa %}
-                    <p><a class="admin-link" href="/admin/ohs/capaaction/add/">Create CAPA Action</a></p>
+                    <p><a class="admin-link" href="/capa/">Open CAPA Center</a></p>
                     {% endif %}
                     {% if can_manage_medical %}
-                    <p><a class="admin-link" href="/admin/ohs/medicalprofile/add/">Create Medical Profile</a></p>
+                    <p><a class="admin-link" href="/medical/">Open Medical Center</a></p>
                     {% endif %}
-                    <p><a class="admin-link" href="/schedules/">Open Schedule Center</a></p>
                     {% if not can_manage_schedules %}
                     <p class="muted">Your role can view schedules but cannot create them.</p>
                     {% endif %}

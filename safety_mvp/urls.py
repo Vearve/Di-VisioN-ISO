@@ -15,11 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 from safety_mvp.ohs import views  # Use your actual app name
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
     path('', views.home, name='home'),
     path('app/incidents/', views.incidents_page, name='incidents_page'),
     path('app/jsa/', views.jsa_page, name='jsa_page'),
@@ -37,10 +40,13 @@ urlpatterns = [
     path('app/documents/', views.documents_page, name='documents_page'),
     path('app/materials/', views.materials_page, name='materials_page'),
     path('app/objectives/', views.objectives_page, name='objectives_page'),
+    path('app/presets/', views.presets_page, name='presets_page'),
     path('app/schedules/', views.schedules_page, name='schedules_page'),
     path('app/capa/', views.capa_page, name='capa_page'),
     path('app/medical-profiles/', views.medical_profiles_page, name='medical_profiles_page'),
     path('app/medical-assessments/', views.medical_assessments_page, name='medical_assessments_page'),
+    path('app/sites/', views.site_projects_page, name='site_projects_page'),
+    path('app/sites/manage/<int:site_id>/', views.site_manage_page, name='site_manage_page'),
     path('schedules/', views.schedule_center, name='schedule_center'),
     path('capa/', views.capa_center, name='capa_center'),
     path('medical/', views.medical_center, name='medical_center'),

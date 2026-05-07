@@ -41,8 +41,8 @@
             color: var(--sidebar-text);
             padding: 24px 18px;
             position: sticky;
-            top: 0;
-            height: 100vh;
+            top: 60px;
+            height: calc(100vh - 60px);
             overflow-y: auto;
         }
 
@@ -175,32 +175,34 @@
     </style>
 </head>
 <body>
-    <div class="layout">
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
             <div class="brand">Safety Command Center</div>
-            <div class="tenant-card">
-                {% if current_tenant %}
-                    <div><strong>{{ current_tenant.name }}</strong></div>
-                    <div>Role: {{ current_role|default:"Unknown" }}</div>
-                {% else %}
-                    <div><strong>No Tenant</strong></div>
-                {% endif %}
-                <div class="tenant-switch">
-                    {% for tenant in available_tenants %}
-                        <a href="/schedules/?tenant={{ tenant.id }}">{{ tenant.name }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-
             <div class="menu-group">
                 <h4>Main</h4>
                 <a href="/">Home</a>
-                <a class="active" href="/app/schedules/">Schedules</a>
-                <a href="/app/capa/">CAPA Center</a>
-                <a href="/app/medical-profiles/">Medical Center</a>
+                <a href="/app/sites/">Sites &amp; Projects</a>
                 <a href="/analytics/">Analytics</a>
-                <a href="/admin/">Admin</a>
-                {% if can_manage_tenant %}<a href="/admin/ohs/tenantmembership/">Memberships</a>{% endif %}
+                <a class="active" href="/schedules/">Schedules</a>
+                <a href="/capa/">CAPA Center</a>
+                <a href="/medical/">Medical Center</a>
+            </div>
+            <div class="menu-group">
+                <h4>People &amp; Docs</h4>
+                <a href="/app/contractors/">Contractors</a>
+                <a href="/app/certifications/">Certifications</a>
+                <a href="/app/training/">Training</a>
+                <a href="/app/documents/">Documents</a>
+                <a href="/app/materials/">Materials</a>
+            </div>
+            <div class="menu-group">
+                <h4>Presets</h4>
+                <a href="/app/presets/#ccv">CCV Target Setup</a>
+                <a href="/app/presets/#pto">PTO Target Setup</a>
+                <a href="/app/presets/#flra">FLRA Target Setup</a>
+                <a href="/app/presets/#employees">Employees</a>
+                <a href="/app/presets/#objectives">Objectives</a>
             </div>
         </aside>
 
@@ -211,7 +213,7 @@
                     <p>Tenant-level recurring tasks and reminders across sites and departments.</p>
                 </div>
                 {% if can_manage_schedules %}
-                <a class="cta" href="/admin/ohs/scheduleitem/add/">Add Schedule</a>
+                <a class="cta" href="/schedules/">Open Schedule Center</a>
                 {% endif %}
             </section>
 

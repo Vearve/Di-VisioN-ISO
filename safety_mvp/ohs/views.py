@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
 from datetime import timedelta
 from django.utils.timezone import localdate
 import operator
 from functools import reduce
 from django.db.models import Q
-from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
     CAPAActionForm,
@@ -27,6 +28,8 @@ from .forms import (
     PTOChemicalHazardousSubstanceForm,
     SafetyChecklistForm,
     ScheduleItemForm,
+    SiteProjectForm,
+    TenantPresetForm,
     ToolboxTalkForm,
     TrainingMatrixForm,
 )
@@ -40,15 +43,66 @@ TARGETS = {
     # The rest don't need a target
 }
 
+
+
+def _scope_queryset(qs, current_tenant=None, current_site=None):
+    if current_tenant is None:
+        return qs.none()
+
+    scoped = qs.filter(tenant=current_tenant)
+    if current_site and any(field.name == 'site' for field in qs.model._meta.fields):
+        scoped = scoped.filter(site=current_site)
+    return scoped
+
+
+def _sidebar_site_metrics(current_tenant=None, current_site=None):
+    if current_tenant is None:
+        return {
+            'sidebar_employee_count': 0,
+            'sidebar_training_count': 0,
+            'sidebar_objective_count': 0,
+            'sidebar_material_count': 0,
+            'sidebar_document_count': 0,
+        }
+
+    return {
+        'sidebar_employee_count': _scope_queryset(Employee.objects.all(), current_tenant, current_site).count(),
+        'sidebar_training_count': _scope_queryset(TrainingMatrix.objects.all(), current_tenant, current_site).count(),
+        'sidebar_objective_count': _scope_queryset(Objective.objects.all(), current_tenant, current_site).count(),
+        'sidebar_material_count': _scope_queryset(Material.objects.all(), current_tenant, current_site).count(),
+        'sidebar_document_count': _scope_queryset(Document.objects.all(), current_tenant, current_site).count(),
+    }
+
+
+def _tenant_targets(current_tenant):
+    if current_tenant is None:
+        return {
+            'ccv_target': TARGETS['observation'],
+            'pto_target': TARGETS['observation'],
+            'flra_target': TARGETS['flra'],
+            'employee_target': 0,
+            'objective_target': 0,
+        }
+
+    presets, _ = TenantPreset.objects.get_or_create(tenant=current_tenant)
+    return {
+        'ccv_target': presets.ccv_target,
+        'pto_target': presets.pto_target,
+        'flra_target': presets.flra_target,
+        'employee_target': presets.employee_target,
+        'objective_target': presets.objective_target,
+    }
+
+
+@login_required
 def home(request):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     today = localdate()
+    target_values = _tenant_targets(current_tenant)
 
     def scoped(model):
-        qs = model.objects.all()
-        if current_tenant:
-            return qs.filter(tenant=current_tenant)
-        return qs.none()
+        return _scope_queryset(model.objects.all(), current_tenant, current_site)
 
     data = {
         'incident_count': scoped(Incident).count(),
@@ -70,8 +124,8 @@ def home(request):
         'audit_event_count': scoped(AuditLog).count(),
 
         # Targets for bar chart
-        'observation_target': TARGETS['observation'],
-        'flra_target': TARGETS['flra'],
+        'observation_target': target_values['ccv_target'] + target_values['pto_target'],
+        'flra_target': target_values['flra_target'],
         'jsa_target': TARGETS['jsa'],
         'fra_target': TARGETS['fra'],
     }
@@ -83,6 +137,7 @@ def home(request):
     medical_due = scoped(MedicalProfile).filter(next_medical_due__isnull=False).order_by('next_medical_due')[:8]
     recent_audit_events = scoped(AuditLog).order_by('-created_at')[:10]
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
     current_role = user_role_for_tenant(request.user, current_tenant)
 
     permissions = {
@@ -103,8 +158,11 @@ def home(request):
         'upcoming_medicals': medical_due,
         'recent_audit_events': recent_audit_events,
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
+        'available_sites': available_sites,
         'current_role': current_role,
+        **_sidebar_site_metrics(current_tenant, current_site),
         **permissions,
     })
 
@@ -223,6 +281,203 @@ def analytics_dashboard(request):
     })
 
 
+@login_required
+def presets_page(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if not has_minimum_role(current_role, 'supervisor'):
+        messages.error(request, 'You do not have access to presets for the selected tenant.')
+        return redirect('home')
+
+    if current_tenant is None:
+        messages.error(request, 'No tenant selected. Select a tenant first.')
+        return redirect('home')
+
+    preset, _ = TenantPreset.objects.get_or_create(tenant=current_tenant)
+
+    if request.method == 'POST':
+        form = TenantPresetForm(request.POST, instance=preset)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Preset targets updated successfully.')
+            return redirect('presets_page')
+    else:
+        form = TenantPresetForm(instance=preset)
+
+    return render(request, 'presets_page.html', {
+        'title': 'Presets',
+        'description': 'Set target values for CCV, PTO, FLRA, Employees and Objectives.',
+        'form': form,
+        'current_tenant': current_tenant,
+        'current_site': current_site,
+        'available_tenants': available_tenants,
+        'available_sites': available_sites,
+        'current_role': current_role,
+        'active_route': 'presets_page',
+        **_sidebar_site_metrics(current_tenant, current_site),
+    })
+
+
+def site_projects_page(request):
+    current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if not has_minimum_role(current_role, 'supervisor'):
+        messages.error(request, 'You do not have access to site and project management for the selected tenant.')
+        return redirect('home')
+
+    site_qs = SiteProject.objects.none()
+    if current_tenant:
+        site_qs = SiteProject.objects.filter(tenant=current_tenant).order_by('-id')
+
+    edit_instance = None
+    edit_id = request.GET.get('edit')
+    if edit_id and current_tenant:
+        edit_instance = site_qs.filter(id=edit_id).first()
+
+    if request.method == 'POST':
+        delete_attachment_id = request.POST.get('delete_attachment_id')
+        if delete_attachment_id and current_tenant:
+            attachment = SiteProjectAttachment.objects.filter(
+                tenant=current_tenant,
+                id=delete_attachment_id,
+            ).first()
+            if attachment:
+                site_id_for_redirect = attachment.site_project_id
+                attachment.delete()
+                messages.success(request, 'Attachment deleted.')
+                return redirect(f'/app/sites/?edit={site_id_for_redirect}')
+            messages.error(request, 'Attachment not found or not allowed.')
+            return redirect('site_projects_page')
+
+        delete_id = request.POST.get('delete_id')
+        if delete_id and current_tenant:
+            deleting_site = site_qs.filter(id=delete_id).first()
+            deleted, _ = site_qs.filter(id=delete_id).delete()
+            if deleted:
+                if current_site and deleting_site and current_site.id == deleting_site.id:
+                    request.session.pop('current_site_id', None)
+                messages.success(request, 'Site/Project deleted.')
+            else:
+                messages.error(request, 'Site/Project not found or not allowed.')
+            return redirect('site_projects_page')
+
+        edit_post_id = request.POST.get('edit_id')
+        if edit_post_id and current_tenant:
+            edit_instance = site_qs.filter(id=edit_post_id).first()
+
+        form = SiteProjectForm(request.POST, request.FILES, tenant=current_tenant, instance=edit_instance)
+        if form.is_valid() and current_tenant:
+            instance = form.save(commit=False)
+            instance.tenant = current_tenant
+            instance.save()
+
+            uploaded_files = request.FILES.getlist('site_attachments')
+            for uploaded_file in uploaded_files:
+                SiteProjectAttachment.objects.create(
+                    tenant=current_tenant,
+                    site_project=instance,
+                    file=uploaded_file,
+                    uploaded_by=request.user if request.user.is_authenticated else None,
+                )
+
+            if edit_instance:
+                messages.success(request, 'Site/Project updated successfully.')
+            else:
+                messages.success(request, 'Site/Project created successfully.')
+            return redirect('site_projects_page')
+    else:
+        form = SiteProjectForm(tenant=current_tenant, instance=edit_instance)
+
+    site_cards = []
+    for site in site_qs:
+        attachments = list(site.attachments.all()[:4])
+        site_cards.append({
+            'site': site,
+            'incidents_count': Incident.objects.filter(tenant=current_tenant, site=site).count(),
+            'jsa_count': JSA.objects.filter(tenant=current_tenant, site=site).count(),
+            'fra_count': FRA.objects.filter(tenant=current_tenant, site=site).count(),
+            'employees_count': Employee.objects.filter(tenant=current_tenant, site=site).count(),
+            'training_count': TrainingMatrix.objects.filter(tenant=current_tenant, site=site).count(),
+            'objectives_count': Objective.objects.filter(tenant=current_tenant, site=site).count(),
+            'attachments': attachments,
+            'attachments_count': site.attachments.count(),
+        })
+
+    return render(request, 'site_projects.html', {
+        'title': 'Sites and Projects',
+        'description': 'Create and manage operational sites/projects, then open their module workspace.',
+        'form': form,
+        'is_edit_mode': edit_instance is not None,
+        'edit_record_id': edit_instance.id if edit_instance else '',
+        'site_cards': site_cards,
+        'current_tenant': current_tenant,
+        'current_site': current_site,
+        'available_tenants': available_tenants,
+        'available_sites': available_sites,
+        'current_role': current_role,
+        'active_route': 'site_projects_page',
+        'editing_attachments': edit_instance.attachments.all() if edit_instance else SiteProjectAttachment.objects.none(),
+        **_sidebar_site_metrics(current_tenant, current_site),
+    })
+
+
+def site_manage_page(request, site_id):
+    current_tenant = getattr(request, 'current_tenant', None)
+    current_role = user_role_for_tenant(request.user, current_tenant)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+
+    if not has_minimum_role(current_role, 'worker'):
+        messages.error(request, 'You do not have access to this site workspace.')
+        return redirect('home')
+
+    site = SiteProject.objects.filter(tenant=current_tenant, id=site_id).first() if current_tenant else None
+    if not site:
+        messages.error(request, 'Site/Project not found for selected tenant.')
+        return redirect('site_projects_page')
+
+    request.session['current_site_id'] = site.id
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name')
+
+    module_links = [
+        ('JSA', '/app/jsa/', JSA.objects.filter(tenant=current_tenant, site=site).count()),
+        ('FRA', '/app/fra/', FRA.objects.filter(tenant=current_tenant, site=site).count()),
+        ('FLRA', '/app/flra/', FLRA.objects.filter(tenant=current_tenant, site=site).count()),
+        ('PTO', '/app/pto-chemicals/', PTOChemicalHazardousSubstance.objects.filter(tenant=current_tenant, site=site).count()),
+        ('CCV', '/app/ccv/', CCVCriticalControlVerification.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Checklists', '/app/checklists/', SafetyChecklist.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Toolbox Talks', '/app/toolbox-talks/', ToolboxTalk.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Incidents', '/app/incidents/', Incident.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Employees', '/app/employees/', Employee.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Training', '/app/training/', TrainingMatrix.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Objectives', '/app/objectives/', Objective.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Materials', '/app/materials/', Material.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Documents', '/app/documents/', Document.objects.filter(tenant=current_tenant, site=site).count()),
+    ]
+
+    recent_activity = AuditLog.objects.filter(tenant=current_tenant, site=site).order_by('-created_at')[:12]
+
+    return render(request, 'site_manage.html', {
+        'site': site,
+        'module_links': module_links,
+        'current_tenant': current_tenant,
+        'current_site': site,
+        'available_tenants': available_tenants,
+        'available_sites': available_sites,
+        'current_role': current_role,
+        'active_route': 'site_projects_page',
+        'recent_activity': recent_activity,
+        **_sidebar_site_metrics(current_tenant, site),
+    })
+
+
 def _module_page(
     request,
     *,
@@ -239,7 +494,9 @@ def _module_page(
     post_save_callback=None,
 ):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
     current_role = user_role_for_tenant(request.user, current_tenant)
 
     if not has_minimum_role(current_role, user_role_min):
@@ -253,7 +510,7 @@ def _module_page(
     records = model.objects.none()
     total_count = 0
     if current_tenant:
-        qs = model.objects.filter(tenant=current_tenant).order_by('-id')
+        qs = _scope_queryset(model.objects.all(), current_tenant, current_site).order_by('-id')
         if search_query:
             # Search across all CharField and TextField fields
             string_fields = [
@@ -274,12 +531,14 @@ def _module_page(
     edit_instance = None
     edit_id = request.GET.get('edit')
     if edit_id and current_tenant:
-        edit_instance = model.objects.filter(tenant=current_tenant, id=edit_id).first()
+        edit_qs = _scope_queryset(model.objects.all(), current_tenant, current_site)
+        edit_instance = edit_qs.filter(id=edit_id).first()
 
     if request.method == 'POST':
         delete_id = request.POST.get('delete_id')
         if delete_id and current_tenant:
-            deleted, _ = model.objects.filter(tenant=current_tenant, id=delete_id).delete()
+            delete_qs = _scope_queryset(model.objects.all(), current_tenant, current_site)
+            deleted, _ = delete_qs.filter(id=delete_id).delete()
             if deleted:
                 messages.success(request, f'{title} record deleted.')
             else:
@@ -288,12 +547,15 @@ def _module_page(
 
         edit_post_id = request.POST.get('edit_id')
         if edit_post_id and current_tenant:
-            edit_instance = model.objects.filter(tenant=current_tenant, id=edit_post_id).first()
+            edit_qs = _scope_queryset(model.objects.all(), current_tenant, current_site)
+            edit_instance = edit_qs.filter(id=edit_post_id).first()
 
         form = form_class(request.POST, request.FILES, tenant=current_tenant, instance=edit_instance)
         if form.is_valid() and current_tenant:
             instance = form.save(commit=False)
             instance.tenant = current_tenant
+            if current_site and hasattr(instance, 'site_id'):
+                instance.site = current_site
 
             for field in (auto_user_fields or []):
                 if hasattr(instance, field):
@@ -348,9 +610,18 @@ def _module_page(
             values.append(value)
         list_rows.append({'id': row.id, 'values': values})
 
+    if current_site:
+        back_url = f'/app/sites/manage/{current_site.id}/'
+        back_label = 'Back to Site Workspace'
+    else:
+        back_url = '/app/sites/'
+        back_label = 'Back to Sites & Projects'
+
     return render(request, 'module_page.html', {
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
+        'available_sites': available_sites,
         'current_role': current_role,
         'can_manage_tenant': has_minimum_role(current_role, 'admin'),
         'can_manage_schedules': has_minimum_role(current_role, 'supervisor'),
@@ -365,9 +636,13 @@ def _module_page(
         'list_columns': list_columns,
         'list_rows': list_rows,
         'active_route': route_name,
+        'current_path': request.path,
         'search_query': search_query,
         'page_obj': page_obj,
         'total_count': total_count,
+        'back_url': back_url,
+        'back_label': back_label,
+        **_sidebar_site_metrics(current_tenant, current_site),
         **(extra_context or {}),
     })
 
@@ -1042,15 +1317,49 @@ def checklists_page(request):
         'Daily': ['site', 'inspection_area', 'checklist_title', 'ppe_inspection', 'fire_safety_check', 'housekeeping_checked', 'operational_status'],
         'Weekly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'operational_status'],
         'Monthly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'first_aid_kit_stocked', 'actions_required', 'next_due_date'],
-        'LV Vehicle': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'fire_safety_check', 'comments', 'operational_status'],
+        'Mobile Equipment': ['site', 'checklist_title', 'equipment_id', 'inspection_area', 'operator_name', 'operator_signature', 'deviation_problem', 'deviation_reported_to', 'deviation_action_taken', 'comments', 'operational_status'],
         'Lighting Tower': ['site', 'drill_rig_number', 'lighting_tower_number', 'serial_number', 'step_01_compliant', 'step_29_compliant', 'operational_status'],
-        'Drilling Machine Surface': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'safety_signage_visible', 'actions_required', 'operational_status'],
-        'Environmental': ['site', 'inspection_area', 'checklist_title', 'housekeeping_checked', 'findings', 'actions_required', 'operational_status'],
+        'Drilling Machine Surface': ['site', 'company_name', 'area_name', 'operator_name', 'supervisor_name', 'drill_rig_number', 'step_01_compliant', 'step_47_compliant', 'operational_status'],
+        'Environmental': ['site', 'inspection_area', 'checklist_title', 'housekeeping_checked', 'step_01_compliant', 'step_25_compliant', 'findings', 'actions_required', 'operational_status'],
         'Generator': ['site', 'equipment_id', 'inspection_area', 'equipment_condition', 'fire_safety_check', 'next_due_date', 'operational_status'],
         'Other Operational': ['site', 'checklist_title', 'equipment_id', 'inspection_area', 'findings', 'actions_required', 'comments'],
     }
 
     checklist_step_map = {
+        'Mobile Equipment': [
+            'Body work and general condition.',
+            '*Wheels (tyres/rims).',
+            '*Windscreen and all windows.',
+            '*Wipers.',
+            '*License disc.',
+            '*Rear view and side mirrors.',
+            '*Headlights, tail lights, brake lights and indicators.',
+            '*Number plates.',
+            '*Amber flashing light (when prescribed).',
+            '*Buggy whip holder (when prescribed).',
+            'Reflective yellow/red strips.',
+            '*Roll over bars (LDVs, when prescribed).',
+            '*Radiator water.',
+            '*Battery condition, connections and water.',
+            '*Oil level.',
+            '*Brake fluid level.',
+            '*Lubricant leaks.',
+            'Seats.',
+            '*Instrument panel - all instruments working.',
+            '*Steering wheel and test steering.',
+            'Hooter.',
+            '*Reverse hooter (when prescribed).',
+            '*Rear view mirror.',
+            '*Seat belts.',
+            '*Handbrake.',
+            '*Footbrake and test brakes.',
+            'Spare wheel.',
+            'Jack and wheel spanner.',
+            '*Emergency triangles.',
+            'First aid kit (if applicable).',
+            '*Stop blocks (operational vehicles).',
+            '*Fire extinguisher (operational vehicle).',
+        ],
         'Lighting Tower': [
             'Yellow door Assy condition.',
             'Mudguard condition.',
@@ -1082,6 +1391,82 @@ def checklists_page(request):
             'Winch RBW Assy condition.',
             'Last Service.',
         ],
+        'Drilling Machine Surface': [
+            'Structure Condition',
+            'Guide Rod Condition',
+            'Main Which Pulley Condition',
+            'Main Hosting Pulley Condition',
+            'Wire Line Pulley Condition',
+            'Support Leg Condition',
+            'Main Cylinder Condition',
+            'Slides Condition',
+            'Light Condition',
+            'Gauges Condition',
+            'Levers Condition',
+            'Emergency Stop Bottom Condition',
+            'RCS (Rig Control System) Condition',
+            'Bottom Light Condition',
+            'Ignition Switch Condition',
+            'Coolant Level',
+            'Engine Oil Level',
+            'Hydraulic Oil Level',
+            'Fuel Level',
+            'Leakages',
+            'Batteries Condition',
+            'Service Record',
+            'Rod Clamp Condition',
+            'Chuck Jaw Condition',
+            'Platform Condition',
+            'Fire Suppression Condition',
+            'Fire Extinguisher Condition',
+            'Beacon Condition',
+            'Mud Mixer Condition',
+            'Crawlers Condition',
+            'Critical Grease Points',
+            'Hydraulic Jacks Condition',
+            'Main Hoist System Condition',
+            'Wire-Line System Condition',
+            'Rotation Unit Condition',
+            'Gear Oil Level',
+            'Hydraulic Oil Cooler Condition',
+            'Relief Pressure Condition',
+            'Water Pump R35 Condition',
+            'Pipe Wrenches Condition',
+            'Inner Tube Spanner Condition',
+            'Head Assembly Condition',
+            'Overshot Assembly Condition',
+            'Water Swivel Condition',
+            'Hosting Plug Condition',
+            'Camera Survey Condition',
+            'Orientation Tool Condition',
+        ],
+        'Environmental': [
+            'Environmental permits and license conditions for this work area are current and available.',
+            'Applicable environmental legal requirements have been identified for this task/activity.',
+            'Environmental aspects and risks were reviewed before starting work.',
+            'Sensitive receptors (waterways, drains, nearby community, protected zones) are identified and marked.',
+            'Waste segregation is correctly applied at source (general, recyclable, hazardous).',
+            'Waste bins/containers are labeled, covered, and not overflowing.',
+            'Hazardous waste storage is bunded, secure, and protected from rain/wind.',
+            'Chemical containers are clearly labeled and stored by compatibility requirements.',
+            'Current SDS is available and accessible for all chemicals in use.',
+            'Spill kits are present, stocked, and accessible at risk points.',
+            'Fuel, oil, and chemical transfer points are checked for leaks before and after use.',
+            'Secondary containment (bunds/drip trays) is intact and free from defects.',
+            'No visible hydrocarbon or chemical stains indicate uncontrolled releases.',
+            'Drain protection controls are in place for high-risk activities.',
+            'No contaminated runoff is leaving the work area.',
+            'Dust suppression measures are active and effective where needed.',
+            'Air emissions/smoke from plant and generators are within acceptable limits.',
+            'Noise controls are applied where environmental or health impacts are possible.',
+            'Idle time for vehicles/equipment is minimized to reduce emissions.',
+            'Housekeeping standards prevent litter, debris spread, and contamination.',
+            'Topsoil/erosion/sediment controls are in place where ground disturbance occurs.',
+            'Environmental signage and exclusion markings are visible and legible.',
+            'Personnel can explain spill/release immediate response steps.',
+            'Environmental incidents/near misses are reported and escalated per procedure.',
+            'Previous environmental actions are closed out and verified with evidence.',
+        ],
     }
 
     checklist_meta_map = {
@@ -1100,8 +1485,8 @@ def checklists_page(request):
             'ref': 'CHK-MONTHLY',
             'version': '01',
         },
-        'LV Vehicle': {
-            'title': 'LV VEHICLE CHECKLIST',
+        'Mobile Equipment': {
+            'title': 'MOBILE EQUIPMENT CHECKLIST',
             'ref': 'CHK-LV',
             'version': '01',
         },
@@ -1113,9 +1498,8 @@ def checklists_page(request):
             'status': 'Current',
         },
         'Drilling Machine Surface': {
-            'title': 'DRILLING MACHINE SURFACE CHECKLIST',
-            'ref': 'CHK-DRILL',
-            'version': '01',
+            'title': 'DRILLING MACHINE SURFACE INSPECTION CHECK LIST',
+            'status': 'Current',
         },
         'Environmental': {
             'title': 'ENVIRONMENTAL CHECKLIST',
@@ -1139,7 +1523,7 @@ def checklists_page(request):
         model=SafetyChecklist,
         form_class=SafetyChecklistForm,
         title='Safety Checklists',
-        description='Complete operational checklists including LV vehicles, drilling machine surface, environmental and generator checks.',
+        description='Complete operational checklists including mobile equipment, drilling machine surface, environmental and generator checks.',
         route_name='checklists_page',
         auto_user_fields=['completed_by'],
         list_fields=[
@@ -1151,9 +1535,9 @@ def checklists_page(request):
             ('operational_status', 'Operational Status'),
         ],
         form_sections=[
-            ('Checklist Header', ['site', 'checklist_type', 'checklist_title', 'equipment_id', 'inspection_area', 'document_number', 'revision_number', 'effective_date', 'document_status', 'drill_rig_number', 'lighting_tower_number', 'serial_number']),
+            ('Checklist Header', ['site', 'checklist_type', 'checklist_title', 'equipment_id', 'inspection_area', 'document_number', 'revision_number', 'effective_date', 'document_status', 'company_name', 'area_name', 'operator_name', 'supervisor_name', 'drill_rig_number', 'lighting_tower_number', 'serial_number']),
             ('Inspection Items', ['ppe_inspection', 'fire_safety_check', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'first_aid_kit_stocked', 'housekeeping_checked']),
-            ('Lighting Tower Inspection Points', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments', 'step_24_compliant', 'step_24_comments', 'step_25_compliant', 'step_25_comments', 'step_26_compliant', 'step_26_comments', 'step_27_compliant', 'step_27_comments', 'step_28_compliant', 'step_28_comments', 'step_29_compliant', 'step_29_comments']),
+            ('Checklist Inspection Points', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments', 'step_24_compliant', 'step_24_comments', 'step_25_compliant', 'step_25_comments', 'step_26_compliant', 'step_26_comments', 'step_27_compliant', 'step_27_comments', 'step_28_compliant', 'step_28_comments', 'step_29_compliant', 'step_29_comments', 'step_30_compliant', 'step_30_comments', 'step_31_compliant', 'step_31_comments', 'step_32_compliant', 'step_32_comments', 'step_33_compliant', 'step_33_comments', 'step_34_compliant', 'step_34_comments', 'step_35_compliant', 'step_35_comments', 'step_36_compliant', 'step_36_comments', 'step_37_compliant', 'step_37_comments', 'step_38_compliant', 'step_38_comments', 'step_39_compliant', 'step_39_comments', 'step_40_compliant', 'step_40_comments', 'step_41_compliant', 'step_41_comments', 'step_42_compliant', 'step_42_comments', 'step_43_compliant', 'step_43_comments', 'step_44_compliant', 'step_44_comments', 'step_45_compliant', 'step_45_comments', 'step_46_compliant', 'step_46_comments', 'step_47_compliant', 'step_47_comments']),
             ('Findings and Actions', ['operational_status', 'findings', 'actions_required', 'verified_by', 'next_due_date']),
             ('Signatures', ['operator_signature', 'site_supervisor_signature', 'maintenance_supervisor_signature']),
             ('Deviation Report', ['deviation_date', 'deviation_problem', 'deviation_reported_to', 'deviation_action_taken']),

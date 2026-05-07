@@ -4,6 +4,7 @@ from .models import Tenant, TenantMembership
 
 
 SESSION_TENANT_KEY = "current_tenant_id"
+SESSION_SITE_KEY = "current_site_id"
 
 ROLE_ORDER = {
     'auditor': 10,
@@ -53,6 +54,33 @@ def resolve_current_tenant(request):
     if default_tenant:
         request.session[SESSION_TENANT_KEY] = default_tenant.id
     return default_tenant
+
+
+def resolve_current_site(request, tenant=None):
+    if tenant is None:
+        return None
+
+    available_sites = tenant.sites.filter(status='active').order_by('name')
+    query_site_id = request.GET.get("site")
+
+    if query_site_id == 'all':
+        request.session.pop(SESSION_SITE_KEY, None)
+        return None
+
+    if query_site_id:
+        candidate = available_sites.filter(id=query_site_id).first()
+        if candidate:
+            request.session[SESSION_SITE_KEY] = candidate.id
+            return candidate
+
+    session_site_id = request.session.get(SESSION_SITE_KEY)
+    if session_site_id:
+        candidate = available_sites.filter(id=session_site_id).first()
+        if candidate:
+            return candidate
+        request.session.pop(SESSION_SITE_KEY, None)
+
+    return None
 
 
 def user_role_for_tenant(user, tenant):

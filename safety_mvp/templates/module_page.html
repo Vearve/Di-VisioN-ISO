@@ -17,6 +17,21 @@
         .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
         .content { padding: 24px; }
         .header { margin-bottom: 16px; }
+        .header-top { margin-bottom: 10px; }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #0f8f6f;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.88rem;
+            padding: 6px 10px;
+            border: 1px solid #b9d8cf;
+            border-radius: 999px;
+            background: #eefaf6;
+        }
+        .back-link:hover { background: #dff5ee; }
         .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
         .muted { color: #6a7d86; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -64,13 +79,15 @@
     </style>
 </head>
 <body>
-    <div class="layout">
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
             <div class="brand">Safety Command Center</div>
 
             <div class="menu-group">
                 <h4>Main</h4>
                 <a href="/">Home</a>
+                <a href="/app/sites/" class="{% if active_route == 'site_projects_page' %}active{% endif %}">Sites and Projects</a>
                 <a href="/analytics/">Analytics</a>
                 <a href="/app/schedules/" class="{% if active_route == 'schedules_page' %}active{% endif %}">Schedules</a>
                 <a href="/app/capa/" class="{% if active_route == 'capa_page' %}active{% endif %}">CAPA</a>
@@ -79,36 +96,42 @@
             </div>
 
             <div class="menu-group">
-                <h4>Operations</h4>
-                <a href="/app/incidents/" class="{% if active_route == 'incidents_page' %}active{% endif %}">Incidents</a>
-                <a href="/app/jsa/" class="{% if active_route == 'jsa_page' %}active{% endif %}">JSA</a>
-                <a href="/app/fra/" class="{% if active_route == 'fra_page' %}active{% endif %}">FRA</a>
-                <a href="/app/flra/" class="{% if active_route == 'flra_page' %}active{% endif %}">FLRA</a>
-                <a href="/app/observations/" class="{% if active_route == 'observations_page' %}active{% endif %}">Observations</a>
-                <a href="/app/toolbox-talks/" class="{% if active_route == 'toolbox_talks_page' %}active{% endif %}">Toolbox Talks</a>
-                <a href="/app/pto-chemicals/" class="{% if active_route == 'pto_chemicals_page' %}active{% endif %}">PTO - Chemicals</a>
-                <a href="/app/ccv/" class="{% if active_route == 'ccv_page' %}active{% endif %}">CCV</a>
-                <a href="/app/checklists/" class="{% if active_route == 'checklists_page' %}active{% endif %}">Checklists</a>
-            </div>
-
-            <div class="menu-group">
                 <h4>People & Docs</h4>
-                <a href="/app/employees/" class="{% if active_route == 'employees_page' %}active{% endif %}">Employees</a>
                 <a href="/app/contractors/" class="{% if active_route == 'contractors_page' %}active{% endif %}">Contractors</a>
                 <a href="/app/certifications/" class="{% if active_route == 'certifications_page' %}active{% endif %}">Certifications</a>
                 <a href="/app/training/" class="{% if active_route == 'training_page' %}active{% endif %}">Training</a>
                 <a href="/app/documents/" class="{% if active_route == 'documents_page' %}active{% endif %}">Documents</a>
                 <a href="/app/materials/" class="{% if active_route == 'materials_page' %}active{% endif %}">Materials</a>
-                <a href="/app/objectives/" class="{% if active_route == 'objectives_page' %}active{% endif %}">Objectives</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Presets</h4>
+                <a href="/app/presets/#ccv" class="{% if active_route == 'presets_page' %}active{% endif %}">CCV Target Setup</a>
+                <a href="/app/presets/#pto" class="{% if active_route == 'presets_page' %}active{% endif %}">PTO Target Setup</a>
+                <a href="/app/presets/#flra" class="{% if active_route == 'presets_page' %}active{% endif %}">FLRA Target Setup</a>
+                <a href="/app/presets/#employees" class="{% if active_route == 'presets_page' %}active{% endif %}">Employees</a>
+                <a href="/app/presets/#objectives" class="{% if active_route == 'presets_page' %}active{% endif %}">Objectives</a>
+            </div>
+
+            <div class="menu-group">
+                <h4>Live Sidebar Counts</h4>
+                <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
+                <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
+                <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
+                <a href="/app/materials/">Materials ({{ sidebar_material_count }})</a>
+                <a href="/app/documents/">Documents ({{ sidebar_document_count }})</a>
             </div>
         </aside>
 
         <main class="content">
             <div class="header">
+                <div class="header-top">
+                    <a href="{{ back_url }}" class="back-link">&larr; {{ back_label }}</a>
+                </div>
                 <h1>{{ title }}</h1>
                 <p class="muted">{{ description }}</p>
                 {% if current_tenant %}
-                    <p class="muted">Tenant: {{ current_tenant.name }} | Role: {{ current_role|default:"unknown" }}</p>
+                    <p class="muted">Tenant: {{ current_tenant.name }} | Site: {{ current_site.name|default:"All Sites" }} | Role: {{ current_role|default:"unknown" }}</p>
                 {% else %}
                     <p class="muted">No tenant selected.</p>
                 {% endif %}
@@ -483,6 +506,22 @@
             const stepMap = stepMapNode ? JSON.parse(stepMapNode.textContent || '{}') : {};
             const metaMap = metaMapNode ? JSON.parse(metaMapNode.textContent || '{}') : {};
             const templates = Object.keys(fieldMap);
+            const shouldFilterChecklistFields = templateTypeField.name === 'checklist_type';
+            const checklistAlwaysVisibleFields = new Set([
+                'site',
+                'checklist_type',
+                'checklist_title',
+                'equipment_id',
+                'inspection_area',
+                'date_completed',
+                'operational_status',
+                'findings',
+                'actions_required',
+                'verified_by',
+                'next_due_date',
+                'comments',
+                'checklist_file',
+            ]);
 
             for (const key of templates) {
                 const option = document.createElement('option');
@@ -548,7 +587,7 @@
             const updateStepFieldLabels = (templateKey) => {
                 const steps = stepMap[templateKey] || [];
 
-                for (let index = 1; index <= 29; index += 1) {
+                for (let index = 1; index <= 47; index += 1) {
                     const stepKey = String(index).padStart(2, '0');
                     const question = steps[index - 1];
                     const compliantName = `step_${stepKey}_compliant`;
@@ -589,6 +628,37 @@
                 }
             };
 
+            const updateChecklistFieldVisibility = (templateKey) => {
+                if (!shouldFilterChecklistFields) {
+                    return;
+                }
+
+                const allowedFields = new Set([
+                    ...checklistAlwaysVisibleFields,
+                    ...(fieldMap[templateKey] || []),
+                ]);
+
+                const form = templateTypeField.closest('form');
+                if (!form) {
+                    return;
+                }
+
+                const fieldRows = form.querySelectorAll('p');
+                for (const row of fieldRows) {
+                    const control = row.querySelector('input[name], select[name], textarea[name]');
+                    if (!control) {
+                        continue;
+                    }
+
+                    const fieldName = control.getAttribute('name') || '';
+                    if (fieldName.startsWith('step_')) {
+                        continue;
+                    }
+
+                    row.style.display = allowedFields.has(fieldName) ? '' : 'none';
+                }
+            };
+
             const syncFromForm = () => {
                 const selected = templateTypeField.value || templates[0];
                 templateSelect.value = selected;
@@ -596,6 +666,7 @@
                 fillStepOptions(selected);
                 fillMeta(selected);
                 updateStepFieldLabels(selected);
+                updateChecklistFieldVisibility(selected);
             };
 
             templateSelect.addEventListener('change', () => {
@@ -604,6 +675,7 @@
                 fillStepOptions(templateSelect.value);
                 fillMeta(templateSelect.value);
                 updateStepFieldLabels(templateSelect.value);
+                updateChecklistFieldVisibility(templateSelect.value);
             });
 
             templateTypeField.addEventListener('change', syncFromForm);

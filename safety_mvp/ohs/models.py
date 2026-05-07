@@ -71,6 +71,7 @@ class SiteProject(models.Model):
     code = models.CharField(max_length=60, blank=True)
     location = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
+    site_attachment = models.FileField(upload_to='site_projects/', blank=True, null=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
@@ -91,6 +92,20 @@ class SiteProject(models.Model):
         current_sites = SiteProject.objects.filter(tenant=self.tenant).exclude(pk=self.pk).count()
         if current_sites >= max_sites:
             raise ValidationError({'tenant': f'This tenant reached its plan site limit ({max_sites}).'})
+
+
+class SiteProjectAttachment(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='site_project_attachments')
+    site_project = models.ForeignKey(SiteProject, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='site_projects/attachments/')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='site_project_attachments_uploaded')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-uploaded_at',)
+
+    def __str__(self):
+        return f"{self.site_project.name} attachment {self.id}"
 
 
 class TenantMembership(models.Model):
@@ -128,6 +143,19 @@ class TenantMembership(models.Model):
 
         if self.is_active and active_members >= max_users:
             raise ValidationError({'tenant': f'This tenant reached its plan user limit ({max_users}).'})
+
+
+class TenantPreset(models.Model):
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='presets')
+    ccv_target = models.PositiveIntegerField(default=20)
+    pto_target = models.PositiveIntegerField(default=20)
+    flra_target = models.PositiveIntegerField(default=500)
+    employee_target = models.PositiveIntegerField(default=0)
+    objective_target = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.tenant.name} presets"
 
 # Incident Reporting
 class Incident(models.Model):
@@ -703,7 +731,7 @@ class SafetyChecklist(models.Model):
         ('Daily', 'Daily'),
         ('Weekly', 'Weekly'),
         ('Monthly', 'Monthly'),
-        ('LV Vehicle', 'LV Vehicle Checklist'),
+        ('Mobile Equipment', 'Mobile Equipment Checklist'),
         ('Lighting Tower', 'Lighting Tower Inspection Checklist'),
         ('Drilling Machine Surface', 'Drilling Machine Surface Checklist'),
         ('Environmental', 'Environmental Checklist'),
@@ -726,6 +754,10 @@ class SafetyChecklist(models.Model):
     revision_number = models.CharField(max_length=20, blank=True)
     effective_date = models.DateField(null=True, blank=True)
     document_status = models.CharField(max_length=30, blank=True)
+    company_name = models.CharField(max_length=255, blank=True)
+    area_name = models.CharField(max_length=255, blank=True)
+    operator_name = models.CharField(max_length=255, blank=True)
+    supervisor_name = models.CharField(max_length=255, blank=True)
     drill_rig_number = models.CharField(max_length=100, blank=True)
     lighting_tower_number = models.CharField(max_length=100, blank=True)
     serial_number = models.CharField(max_length=100, blank=True)
@@ -796,6 +828,42 @@ class SafetyChecklist(models.Model):
     step_28_comments = models.TextField(blank=True)
     step_29_compliant = models.BooleanField(null=True, blank=True)
     step_29_comments = models.TextField(blank=True)
+    step_30_compliant = models.BooleanField(null=True, blank=True)
+    step_30_comments = models.TextField(blank=True)
+    step_31_compliant = models.BooleanField(null=True, blank=True)
+    step_31_comments = models.TextField(blank=True)
+    step_32_compliant = models.BooleanField(null=True, blank=True)
+    step_32_comments = models.TextField(blank=True)
+    step_33_compliant = models.BooleanField(null=True, blank=True)
+    step_33_comments = models.TextField(blank=True)
+    step_34_compliant = models.BooleanField(null=True, blank=True)
+    step_34_comments = models.TextField(blank=True)
+    step_35_compliant = models.BooleanField(null=True, blank=True)
+    step_35_comments = models.TextField(blank=True)
+    step_36_compliant = models.BooleanField(null=True, blank=True)
+    step_36_comments = models.TextField(blank=True)
+    step_37_compliant = models.BooleanField(null=True, blank=True)
+    step_37_comments = models.TextField(blank=True)
+    step_38_compliant = models.BooleanField(null=True, blank=True)
+    step_38_comments = models.TextField(blank=True)
+    step_39_compliant = models.BooleanField(null=True, blank=True)
+    step_39_comments = models.TextField(blank=True)
+    step_40_compliant = models.BooleanField(null=True, blank=True)
+    step_40_comments = models.TextField(blank=True)
+    step_41_compliant = models.BooleanField(null=True, blank=True)
+    step_41_comments = models.TextField(blank=True)
+    step_42_compliant = models.BooleanField(null=True, blank=True)
+    step_42_comments = models.TextField(blank=True)
+    step_43_compliant = models.BooleanField(null=True, blank=True)
+    step_43_comments = models.TextField(blank=True)
+    step_44_compliant = models.BooleanField(null=True, blank=True)
+    step_44_comments = models.TextField(blank=True)
+    step_45_compliant = models.BooleanField(null=True, blank=True)
+    step_45_comments = models.TextField(blank=True)
+    step_46_compliant = models.BooleanField(null=True, blank=True)
+    step_46_comments = models.TextField(blank=True)
+    step_47_compliant = models.BooleanField(null=True, blank=True)
+    step_47_comments = models.TextField(blank=True)
     operational_status = models.CharField(max_length=20, choices=OPERATIONAL_STATUS_CHOICES, blank=True)
     findings = models.TextField(blank=True)
     actions_required = models.TextField(blank=True)

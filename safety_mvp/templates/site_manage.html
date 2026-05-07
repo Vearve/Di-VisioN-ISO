@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
+        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
+        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
+        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
+        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
+        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
+        .content { padding: 24px; }
+        h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; }
+        .muted { color: #6a7d86; }
+        .module-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .module-card { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 12px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
+        .module-card a { display: inline-block; margin-top: 8px; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; background: #0f8f6f; color: #fff; }
+        .count { color: #6a7d86; font-size: 0.82rem; margin-top: 6px; }
+        .activity { margin-top: 16px; background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 12px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
+        table { width: 100%; border-collapse: collapse; min-width: 520px; }
+        th, td { border-bottom: 1px solid #dfe6e8; text-align: left; padding: 8px; font-size: 0.86rem; }
+        th { color: #6a7d86; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .context-box { border: 1px dashed #b7c8ce; border-radius: 10px; padding: 8px; margin-top: 8px; }
+        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    {% include "_header.html" %}
+    <div class="layout" style="margin-top: 60px;">
+        <aside class="sidebar">
+            <div class="brand">Safety Command Center</div>
+            <div class="menu-group">
+                <h4>Main</h4>
+                <a href="/">Home</a>
+                <a href="/app/sites/" class="active">Sites and Projects</a>
+            </div>
+            <div class="menu-group">
+                <h4>Current Context</h4>
+                <div class="context-box">
+                    <div>Tenant: {{ current_tenant.name|default:'-' }}</div>
+                    <div>Site: {{ current_site.name|default:'All Sites' }}</div>
+                </div>
+            </div>
+            <div class="menu-group">
+                <h4>Live Metrics</h4>
+                <div class="context-box">
+                    <div>Employees: {{ sidebar_employee_count }}</div>
+                    <div>Training: {{ sidebar_training_count }}</div>
+                    <div>Objectives: {{ sidebar_objective_count }}</div>
+                    <div>Materials: {{ sidebar_material_count }}</div>
+                    <div>Documents: {{ sidebar_document_count }}</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <h1>{{ site.name }}</h1>
+            <p class="muted">{{ site.location|default:'No location set' }} | {{ site.description|default:'No description set' }}</p>
+
+            <div class="module-grid">
+                {% for label, href, count in module_links %}
+                    <div class="module-card">
+                        <strong>{{ label }}</strong>
+                        <div class="count">Records: {{ count }}</div>
+                        <a href="{{ href }}">Open Module</a>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <section class="activity">
+                <h3>Recent Site Activity</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>When</th>
+                            <th>Action</th>
+                            <th>Module</th>
+                            <th>Record</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in recent_activity %}
+                            <tr>
+                                <td>{{ event.created_at }}</td>
+                                <td>{{ event.get_action_display }}</td>
+                                <td>{{ event.model_name }}</td>
+                                <td>{{ event.object_repr }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="muted">No recent activity for this site yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

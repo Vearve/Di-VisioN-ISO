@@ -1,4 +1,4 @@
-from .tenant_context import resolve_current_tenant
+from .tenant_context import resolve_current_site, resolve_current_tenant
 
 
 class CurrentTenantMiddleware:
@@ -7,4 +7,5 @@ class CurrentTenantMiddleware:
 
     def __call__(self, request):
         request.current_tenant = resolve_current_tenant(request)
+        request.current_site = resolve_current_site(request, request.current_tenant)
         return self.get_response(request)

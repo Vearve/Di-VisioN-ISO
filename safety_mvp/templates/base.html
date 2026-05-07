@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Di-VisioN ISO Toolkit{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f7f6f2;
+            --surface: #ffffff;
+            --text: #17313b;
+            --muted: #6a7d86;
+            --line: #dfe6e8;
+            --accent: #0f8f6f;
+            --accent-soft: #d9f6ee;
+            --danger: #c4442f;
+            --sidebar: #0f2c35;
+            --sidebar-text: #d3e5ec;
+            --sidebar-active: #204753;
+            --card-shadow: 0 12px 24px rgba(9, 42, 51, 0.08);
+            --header-height: 60px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 5% 8%, #d8efe6 0%, rgba(216, 239, 230, 0) 32%),
+                radial-gradient(circle at 92% 18%, #ffe3c8 0%, rgba(255, 227, 200, 0) 35%),
+                var(--bg);
+        }
+
+        /* Header Bar */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: linear-gradient(90deg, #0f2c35 0%, #123845 100%);
+            color: var(--sidebar-text);
+            padding: 0 24px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-brand-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #4fb3a3;
+        }
+
+        .header-brand-text {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .header-brand-main {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .header-brand-sub {
+            color: #8eb1bd;
+            font-size: 0.7rem;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-dropdown {
+            position: relative;
+        }
+
+        .user-menu-trigger {
+            background: none;
+            border: none;
+            color: var(--sidebar-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .user-menu-trigger:hover {
+            background: var(--sidebar-active);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #4fb3a3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .user-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            margin-top: 8px;
+            display: none;
+        }
+
+        .user-menu.active {
+            display: block;
+        }
+
+        .user-menu a,
+        .user-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            color: var(--text);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .user-menu a:hover,
+        .user-menu button:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .user-menu a:first-child,
+        .user-menu button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .user-menu a:last-child,
+        .user-menu button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .user-menu button {
+            color: var(--danger);
+        }
+
+        .user-menu button:hover {
+            background: rgba(196, 68, 47, 0.1);
+        }
+
+        .layout {
+            min-height: calc(100vh - var(--header-height));
+            display: grid;
+            grid-template-columns: 270px 1fr;
+            margin-top: var(--header-height);
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0f2c35 0%, #123845 100%);
+            color: var(--sidebar-text);
+            padding: 24px 18px;
+            position: sticky;
+            top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            overflow-y: auto;
+        }
+
+        .content {
+            padding: 22px;
+            overflow-y: auto;
+        }
+
+        /* No-header layout for login */
+        .layout.no-header {
+            margin-top: 0;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 1080px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 16px;
+            }
+
+            .header-brand-text {
+                display: none;
+            }
+
+            .user-menu {
+                right: -16px;
+            }
+        }
+    </style>
+    {% block extra_style %}{% endblock %}
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-brand-logo">◊</div>
+            <div class="header-brand-text">
+                <div class="header-brand-main">Di-VisioN</div>
+                <div class="header-brand-sub">ISO Toolkit</div>
+            </div>
+        </div>
+        <div class="header-user">
+            <div class="user-dropdown">
+                <button class="user-menu-trigger" onclick="toggleUserMenu(event)">
+                    <div class="user-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+                    <span>{{ user.first_name|default:user.username }}</span>
+                </button>
+                <div class="user-menu" id="userMenu">
+                    <a href="/app/profile/">Profile</a>
+                    <a href="/app/settings/">Settings</a>
+                    <form method="post" action="/logout/" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <div class="layout">
+        {% block sidebar %}{% endblock %}
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+    <div class="layout no-header">
+        {% block login_content %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <script>
+        function toggleUserMenu(event) {
+            event.preventDefault();
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('active');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('userMenu');
+            const trigger = event.target.closest('.user-menu-trigger');
+            if (!trigger && menu) {
+                menu.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

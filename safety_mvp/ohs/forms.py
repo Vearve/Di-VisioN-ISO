@@ -21,6 +21,7 @@ from .models import (
     SafetyChecklist,
     ScheduleItem,
     SiteProject,
+    TenantPreset,
     TenantMembership,
     ToolboxTalk,
     TrainingMatrix,
@@ -60,6 +61,7 @@ class TenantScopedModelForm(forms.ModelForm):
             'approver',
             'employee',
             'assessor',
+            'manager',
         ]
         for field in user_fields:
             if field in self.fields:
@@ -157,6 +159,18 @@ class SafetyChecklistForm(TenantScopedModelForm):
         exclude = ('tenant', 'date_completed', 'completed_by')
 
 
+class TenantPresetForm(forms.ModelForm):
+    class Meta:
+        model = TenantPreset
+        fields = (
+            'ccv_target',
+            'pto_target',
+            'flra_target',
+            'employee_target',
+            'objective_target',
+        )
+
+
 class ToolboxTalkForm(TenantScopedModelForm):
     class Meta:
         model = ToolboxTalk
@@ -227,3 +241,9 @@ class MedicalAssessmentForm(TenantScopedModelForm):
     class Meta:
         model = MedicalAssessment
         exclude = ('tenant', 'created_at')
+
+
+class SiteProjectForm(TenantScopedModelForm):
+    class Meta:
+        model = SiteProject
+        exclude = ('tenant',)

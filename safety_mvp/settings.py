@@ -28,6 +28,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['ohs-2.onrender.com', 'localhost', '127.0.0.1']
 
+# Allow LAN testing on tablets/phones in development only.
+if DEBUG and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('*')
+
 
 
 
@@ -135,3 +139,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'login'
