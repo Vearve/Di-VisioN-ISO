@@ -80,7 +80,7 @@
             .grid { grid-template-columns: 1fr; }
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .layout { grid-template-columns: 1fr; }
             .sidebar {
                 position: fixed;
@@ -356,7 +356,7 @@
                 <section class="panel record-wrap">
                     <h3>Recent Records</h3>
                     <form class="search-bar" method="get" action=".">
-                        <input type="search" name="q" value="{{ search_query }}" placeholder="Search records…">
+                        <input type="search" name="q" value="{{ search_query }}" placeholder="Search recordsâ€¦">
                         <button class="btn" type="submit">Search</button>
                         {% if search_query %}<a class="btn secondary" href=".">Clear</a>{% endif %}
                     </form>
