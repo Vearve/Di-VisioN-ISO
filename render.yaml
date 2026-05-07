@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: di-vision-iso
+    env: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn safety_mvp.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.11.5
