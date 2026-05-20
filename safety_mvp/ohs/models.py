@@ -157,6 +157,33 @@ class TenantPreset(models.Model):
     def __str__(self):
         return f"{self.tenant.name} presets"
 
+
+# Project-Level Presets
+class ProjectPreset(models.Model):
+    """KPI targets for a specific site/project."""
+    site_project = models.OneToOneField(SiteProject, on_delete=models.CASCADE, related_name='preset')
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='project_presets')
+    man_hours_target = models.PositiveIntegerField(default=1000, help_text='Monthly man-hours target')
+    incident_target = models.PositiveIntegerField(default=0, help_text='Target incidents (0 = zero tolerance)')
+    jsa_target = models.PositiveIntegerField(default=10, help_text='Monthly JSAs target')
+    fra_target = models.PositiveIntegerField(default=5, help_text='Monthly FRAs target')
+    flra_target = models.PositiveIntegerField(default=100, help_text='Monthly FLRAs target')
+    ccv_target = models.PositiveIntegerField(default=20, help_text='Monthly CCVs target')
+    safety_incidents_severity_target = models.CharField(
+        max_length=20,
+        choices=[('none', 'Zero High Severity'), ('low', 'Only Low Severity'), ('any', 'All Types')],
+        default='low'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('site_project', 'tenant')
+
+    def __str__(self):
+        return f"{self.site_project.name} - KPI Preset"
+
+
 # Incident Reporting
 class Incident(models.Model):
     EMPLOYMENT_TYPE_CHOICES = [

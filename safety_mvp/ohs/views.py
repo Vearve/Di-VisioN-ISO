@@ -7,7 +7,7 @@ from django.utils.timezone import localdate
 import operator
 from functools import reduce
 from django.db.models import Q
-from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
     AttendanceRecordForm,
@@ -26,6 +26,7 @@ from .forms import (
     MedicalProfileForm,
     ObjectiveForm,
     ObservationForm,
+    ProjectPresetForm,
     PTOChemicalHazardousSubstanceForm,
     SafetyChecklistForm,
     ScheduleItemForm,
@@ -44,6 +45,124 @@ TARGETS = {
     # The rest don't need a target
 }
 
+
+def _calculate_kpi_metrics(site, tenant, date_from=None, date_to=None):
+    """Calculate KPI metrics for a project/site."""
+    from django.utils.timezone import localdate
+    from datetime import timedelta
+    
+    if date_to is None:
+        date_to = localdate()
+    if date_from is None:
+        # Default to last 30 days
+        date_from = date_to - timedelta(days=30)
+    
+    # Get or create project preset
+    preset, _ = ProjectPreset.objects.get_or_create(
+        site_project=site,
+        tenant=tenant,
+        defaults={
+            'man_hours_target': 1000,
+            'incident_target': 0,
+            'jsa_target': 10,
+            'fra_target': 5,
+            'flra_target': 100,
+            'ccv_target': 20,
+        }
+    )
+    
+    # Calculate attendance/man-hours
+    attendance_records = AttendanceRecord.objects.filter(
+        site_project=site,
+        tenant=tenant,
+        date__gte=date_from,
+        date__lte=date_to
+    )
+    total_man_hours = sum(record.get_man_hours() for record in attendance_records)
+    
+    # Count incidents by severity
+    incidents = Incident.objects.filter(
+        site=site,
+        tenant=tenant,
+        date_of_incident__gte=date_from,
+        date_of_incident__lte=date_to
+    )
+    incident_count = incidents.count()
+    high_severity_incidents = incidents.filter(severity='high').count()
+    
+    # Count safety assessments/JSAs
+    jsa_count = JSA.objects.filter(
+        site=site,
+        tenant=tenant,
+        date_of_activity__gte=date_from,
+        date_of_activity__lte=date_to
+    ).count()
+    
+    fra_count = FRA.objects.filter(
+        site=site,
+        tenant=tenant,
+        date_of_assessment__gte=date_from,
+        date_of_assessment__lte=date_to
+    ).count()
+    
+    flra_count = FLRA.objects.filter(
+        site=site,
+        tenant=tenant,
+        date_of_assessment__gte=date_from,
+        date_of_assessment__lte=date_to
+    ).count()
+    
+    ccv_count = CCVCriticalControlVerification.objects.filter(
+        site=site,
+        tenant=tenant,
+        date_of_verification__gte=date_from,
+        date_of_verification__lte=date_to
+    ).count()
+    
+    # Calculate compliance metrics
+    kpis = {
+        'date_range': f"{date_from.strftime('%b %d')} - {date_to.strftime('%b %d, %Y')}",
+        'man_hours': {
+            'actual': round(total_man_hours, 2),
+            'target': preset.man_hours_target,
+            'percent': round((total_man_hours / preset.man_hours_target * 100) if preset.man_hours_target > 0 else 0, 1),
+            'status': 'On Track' if total_man_hours >= preset.man_hours_target else 'Behind',
+        },
+        'incidents': {
+            'actual': incident_count,
+            'target': preset.incident_target,
+            'percent': round((incident_count / preset.incident_target * 100) if preset.incident_target > 0 else (0 if incident_count == 0 else 100), 1),
+            'status': 'Good' if incident_count <= preset.incident_target else 'Needs Attention',
+            'high_severity': high_severity_incidents,
+        },
+        'jsa': {
+            'actual': jsa_count,
+            'target': preset.jsa_target,
+            'percent': round((jsa_count / preset.jsa_target * 100) if preset.jsa_target > 0 else 0, 1),
+            'status': 'On Track' if jsa_count >= preset.jsa_target else 'Behind',
+        },
+        'fra': {
+            'actual': fra_count,
+            'target': preset.fra_target,
+            'percent': round((fra_count / preset.fra_target * 100) if preset.fra_target > 0 else 0, 1),
+            'status': 'On Track' if fra_count >= preset.fra_target else 'Behind',
+        },
+        'flra': {
+            'actual': flra_count,
+            'target': preset.flra_target,
+            'percent': round((flra_count / preset.flra_target * 100) if preset.flra_target > 0 else 0, 1),
+            'status': 'On Track' if flra_count >= preset.flra_target else 'Behind',
+        },
+        'ccv': {
+            'actual': ccv_count,
+            'target': preset.ccv_target,
+            'percent': round((ccv_count / preset.ccv_target * 100) if preset.ccv_target > 0 else 0, 1),
+            'status': 'On Track' if ccv_count >= preset.ccv_target else 'Behind',
+        },
+        'preset': preset,
+    }
+    
+    return kpis
 
 
 def _scope_queryset(qs, current_tenant=None, current_site=None):
@@ -467,10 +586,14 @@ def site_manage_page(request, site_id):
     ]
 
     recent_activity = AuditLog.objects.filter(tenant=current_tenant, site=site).order_by('-created_at')[:12]
+    
+    # Calculate KPI metrics for the last 30 days
+    kpi_metrics = _calculate_kpi_metrics(site, current_tenant)
 
     return render(request, 'site_manage.html', {
         'site': site,
         'module_links': module_links,
+        'kpi_metrics': kpi_metrics,
         'current_tenant': current_tenant,
         'current_site': site,
         'available_tenants': available_tenants,
@@ -479,6 +602,64 @@ def site_manage_page(request, site_id):
         'active_route': 'site_projects_page',
         'recent_activity': recent_activity,
         **_sidebar_site_metrics(current_tenant, site),
+    })
+
+
+def site_presets_page(request, site_id):
+    """Manage KPI presets for a specific project/site."""
+    current_tenant = getattr(request, 'current_tenant', None)
+    current_role = user_role_for_tenant(request.user, current_tenant)
+    available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
+
+    if not has_minimum_role(current_role, 'supervisor'):
+        messages.error(request, 'You do not have permission to manage project presets.')
+        return redirect('home')
+
+    site = SiteProject.objects.filter(tenant=current_tenant, id=site_id).first() if current_tenant else None
+    if not site:
+        messages.error(request, 'Site/Project not found for selected tenant.')
+        return redirect('site_projects_page')
+
+    request.session['current_site_id'] = site.id
+    available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name')
+
+    preset, _ = ProjectPreset.objects.get_or_create(
+        site_project=site,
+        tenant=current_tenant,
+        defaults={
+            'man_hours_target': 1000,
+            'incident_target': 0,
+            'jsa_target': 10,
+            'fra_target': 5,
+            'flra_target': 100,
+            'ccv_target': 20,
+        }
+    )
+
+    if request.method == 'POST':
+        form = ProjectPresetForm(request.POST, instance=preset, tenant=current_tenant)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.tenant = current_tenant
+            instance.site_project = site
+            instance.save()
+            messages.success(request, 'Project KPI targets updated successfully.')
+            return redirect('site_presets_page', site_id=site.id)
+    else:
+        form = ProjectPresetForm(instance=preset, tenant=current_tenant)
+
+    kpi_metrics = _calculate_kpi_metrics(site, current_tenant)
+
+    return render(request, 'site_presets.html', {
+        'site': site,
+        'form': form,
+        'kpi_metrics': kpi_metrics,
+        'current_tenant': current_tenant,
+        'current_site': site,
+        'available_tenants': available_tenants,
+        'available_sites': available_sites,
+        'current_role': current_role,
+        'active_route': 'site_projects_page',
     })
 
 

@@ -18,6 +18,7 @@ from .models import (
     MedicalProfile,
     Objective,
     Observation,
+    ProjectPreset,
     PTOChemicalHazardousSubstance,
     SafetyChecklist,
     ScheduleItem,
@@ -170,6 +171,13 @@ class TenantPresetForm(forms.ModelForm):
             'employee_target',
             'objective_target',
         )
+
+
+class ProjectPresetForm(TenantScopedModelForm):
+    class Meta:
+        model = ProjectPreset
+        exclude = ('tenant',)
+        fields = ('man_hours_target', 'incident_target', 'jsa_target', 'fra_target', 'flra_target', 'ccv_target', 'safety_incidents_severity_target')
 
 
 class ToolboxTalkForm(TenantScopedModelForm):

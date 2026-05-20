@@ -1,0 +1,261 @@
+<!-- KPI Cards Display Component -->
+{% if kpi_metrics %}
+<style>
+    .kpi-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .kpi-card {
+        background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+        border: 1px solid #e1e8ed;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .kpi-card.on-track {
+        border-left: 4px solid #10b981;
+    }
+
+    .kpi-card.behind {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .kpi-card.needs-attention {
+        border-left: 4px solid #ef4444;
+    }
+
+    .kpi-card.good {
+        border-left: 4px solid #10b981;
+    }
+
+    .kpi-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .kpi-target {
+        font-size: 0.875rem;
+        color: #9ca3af;
+        margin-bottom: 12px;
+    }
+
+    .kpi-progress-bar {
+        width: 100%;
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .kpi-progress-fill {
+        height: 100%;
+        background: #10b981;
+        transition: width 0.3s ease;
+    }
+
+    .kpi-progress-fill.behind {
+        background: #f59e0b;
+    }
+
+    .kpi-progress-fill.critical {
+        background: #ef4444;
+    }
+
+    .kpi-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-status.on-track {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .kpi-status.behind {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .kpi-status.good {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .kpi-status.critical {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .kpi-warning {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding: 8px;
+        background: #fef3c7;
+        border-radius: 6px;
+        color: #92400e;
+        font-size: 0.75rem;
+    }
+
+    .kpi-warning.critical {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .kpi-date-range {
+        text-align: center;
+        font-size: 0.875rem;
+        color: #9ca3af;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .kpi-card {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border-color: #374151;
+        }
+
+        .kpi-title {
+            color: #d1d5db;
+        }
+
+        .kpi-value {
+            color: #f3f4f6;
+        }
+
+        .kpi-target {
+            color: #9ca3af;
+        }
+
+        .kpi-progress-bar {
+            background: #374151;
+        }
+
+        .kpi-date-range {
+            border-color: #374151;
+        }
+    }
+</style>
+
+<div class="kpi-container">
+    <!-- Man-Hours KPI -->
+    <div class="kpi-card {{ kpi_metrics.man_hours.status|lower }}">
+        <div class="kpi-title">📊 Man-Hours (30 days)</div>
+        <div class="kpi-value">{{ kpi_metrics.man_hours.actual }} / {{ kpi_metrics.man_hours.target }}</div>
+        <div class="kpi-target">{{ kpi_metrics.man_hours.percent }}% of target</div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.man_hours.status == 'Behind' %}behind{% endif %}" 
+                 style="width: {{ kpi_metrics.man_hours.percent|min:100 }}%"></div>
+        </div>
+        <span class="kpi-status {{ kpi_metrics.man_hours.status|lower }}">{{ kpi_metrics.man_hours.status }}</span>
+    </div>
+
+    <!-- Incidents KPI -->
+    <div class="kpi-card {% if kpi_metrics.incidents.actual > kpi_metrics.incidents.target %}critical{% else %}good{% endif %}">
+        <div class="kpi-title">⚠️ Incidents (30 days)</div>
+        <div class="kpi-value">{{ kpi_metrics.incidents.actual }} / {{ kpi_metrics.incidents.target }}</div>
+        <div class="kpi-target">
+            {% if kpi_metrics.incidents.actual > kpi_metrics.incidents.target %}
+                {{ kpi_metrics.incidents.actual|add:0 }} over target
+            {% else %}
+                {{ kpi_metrics.incidents.actual }} reported
+            {% endif %}
+        </div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.incidents.actual > kpi_metrics.incidents.target %}critical{% endif %}" 
+                 style="width: {% if kpi_metrics.incidents.percent > 100 %}100{% else %}{{ kpi_metrics.incidents.percent }}{% endif %}%"></div>
+        </div>
+        <span class="kpi-status {% if kpi_metrics.incidents.actual > kpi_metrics.incidents.target %}critical{% else %}good{% endif %}">
+            {{ kpi_metrics.incidents.status }}
+        </span>
+        {% if kpi_metrics.incidents.high_severity > 0 %}
+            <div class="kpi-warning critical">
+                ⚠️ {{ kpi_metrics.incidents.high_severity }} high severity
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- JSAs KPI -->
+    <div class="kpi-card {{ kpi_metrics.jsa.status|lower }}">
+        <div class="kpi-title">📋 Job Safety Analysis</div>
+        <div class="kpi-value">{{ kpi_metrics.jsa.actual }} / {{ kpi_metrics.jsa.target }}</div>
+        <div class="kpi-target">{{ kpi_metrics.jsa.percent }}% of target</div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.jsa.status == 'Behind' %}behind{% endif %}" 
+                 style="width: {{ kpi_metrics.jsa.percent|min:100 }}%"></div>
+        </div>
+        <span class="kpi-status {{ kpi_metrics.jsa.status|lower }}">{{ kpi_metrics.jsa.status }}</span>
+    </div>
+
+    <!-- FRA KPI -->
+    <div class="kpi-card {{ kpi_metrics.fra.status|lower }}">
+        <div class="kpi-title">🔍 Fire Risk Assessment</div>
+        <div class="kpi-value">{{ kpi_metrics.fra.actual }} / {{ kpi_metrics.fra.target }}</div>
+        <div class="kpi-target">{{ kpi_metrics.fra.percent }}% of target</div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.fra.status == 'Behind' %}behind{% endif %}" 
+                 style="width: {{ kpi_metrics.fra.percent|min:100 }}%"></div>
+        </div>
+        <span class="kpi-status {{ kpi_metrics.fra.status|lower }}">{{ kpi_metrics.fra.status }}</span>
+    </div>
+
+    <!-- FLRA KPI -->
+    <div class="kpi-card {{ kpi_metrics.flra.status|lower }}">
+        <div class="kpi-title">🔥 Fire & Life Risk</div>
+        <div class="kpi-value">{{ kpi_metrics.flra.actual }} / {{ kpi_metrics.flra.target }}</div>
+        <div class="kpi-target">{{ kpi_metrics.flra.percent }}% of target</div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.flra.status == 'Behind' %}behind{% endif %}" 
+                 style="width: {{ kpi_metrics.flra.percent|min:100 }}%"></div>
+        </div>
+        <span class="kpi-status {{ kpi_metrics.flra.status|lower }}">{{ kpi_metrics.flra.status }}</span>
+    </div>
+
+    <!-- CCV KPI -->
+    <div class="kpi-card {{ kpi_metrics.ccv.status|lower }}">
+        <div class="kpi-title">✓ Critical Controls</div>
+        <div class="kpi-value">{{ kpi_metrics.ccv.actual }} / {{ kpi_metrics.ccv.target }}</div>
+        <div class="kpi-target">{{ kpi_metrics.ccv.percent }}% of target</div>
+        <div class="kpi-progress-bar">
+            <div class="kpi-progress-fill {% if kpi_metrics.ccv.status == 'Behind' %}behind{% endif %}" 
+                 style="width: {{ kpi_metrics.ccv.percent|min:100 }}%"></div>
+        </div>
+        <span class="kpi-status {{ kpi_metrics.ccv.status|lower }}">{{ kpi_metrics.ccv.status }}</span>
+    </div>
+</div>
+
+<div class="kpi-date-range">
+    📅 Data range: {{ kpi_metrics.date_range }} (Last 30 days)
+</div>
+
+{% endif %}

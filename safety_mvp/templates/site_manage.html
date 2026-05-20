@@ -85,6 +85,28 @@
             <h1>{{ site.name }}</h1>
             <p class="muted">{{ site.location|default:'No location set' }} | {{ site.description|default:'No description set' }}</p>
 
+            <!-- KPI Dashboard Section -->
+            {% if kpi_metrics %}
+            <div style="margin: 30px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 1.25rem;">📊 KPI Performance</h2>
+                    <a href="{% url 'site_presets_page' site_id=site.id %}" style="
+                        padding: 8px 16px;
+                        background: #0f8f6f;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='#0a6f54'" onmouseout="this.style.background='#0f8f6f'">
+                        ⚙️ Manage Targets
+                    </a>
+                </div>
+                {% include "site_kpi_cards.html" %}
+            </div>
+            {% endif %}
+
             <div class="module-grid">
                 {% for label, href, count in module_links %}
                     <div class="module-card">

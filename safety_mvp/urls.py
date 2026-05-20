@@ -48,6 +48,7 @@ urlpatterns = [
     path('app/medical-assessments/', views.medical_assessments_page, name='medical_assessments_page'),
     path('app/sites/', views.site_projects_page, name='site_projects_page'),
     path('app/sites/manage/<int:site_id>/', views.site_manage_page, name='site_manage_page'),
+    path('app/sites/<int:site_id>/presets/', views.site_presets_page, name='site_presets_page'),
     path('schedules/', views.schedule_center, name='schedule_center'),
     path('capa/', views.capa_center, name='capa_center'),
     path('medical/', views.medical_center, name='medical_center'),
