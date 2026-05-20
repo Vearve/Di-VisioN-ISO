@@ -2,11 +2,13 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-from datetime import timedelta
+from django.http import HttpResponse
+from datetime import timedelta, datetime
 from django.utils.timezone import localdate
 import operator
 from functools import reduce
 from django.db.models import Q
+from .pdf_export import PDFGenerator
 from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
@@ -830,6 +832,59 @@ def _module_page(
         **_sidebar_site_metrics(current_tenant, current_site),
         **(extra_context or {}),
     })
+
+
+def export_to_pdf(request, module_name):
+    """Export module data to PDF format."""
+    current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
+    current_role = user_role_for_tenant(request.user, current_tenant)
+
+    if not has_minimum_role(current_role, 'worker'):
+        messages.error(request, 'You do not have permission to export data.')
+        return redirect('home')
+
+    if not current_tenant:
+        messages.error(request, 'Please select a workspace first.')
+        return redirect('home')
+
+    # Get data based on module
+    def scope_qs(qs):
+        return _scope_queryset(qs, current_tenant, current_site)
+
+    pdf_gen = PDFGenerator(
+        title=f"{module_name.title()} Report",
+        company_name=current_tenant.name
+    )
+    site_name = current_site.name if current_site else "All Sites"
+
+    try:
+        if module_name == 'incidents':
+            data = scope_qs(Incident.objects.all()).order_by('-date_of_incident')
+            buffer = pdf_gen.generate_incidents_report(data, site_name)
+            filename = f"incidents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'attendance':
+            data = scope_qs(AttendanceRecord.objects.all()).order_by('-date')
+            buffer = pdf_gen.generate_attendance_report(data, site_name)
+            filename = f"attendance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'employees':
+            data = scope_qs(Employee.objects.all()).order_by('name')
+            buffer = pdf_gen.generate_employees_report(data, site_name)
+            filename = f"employees_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        else:
+            messages.error(request, f'Export not available for {module_name}')
+            return redirect('home')
+
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    except Exception as e:
+        messages.error(request, f'Error generating PDF: {str(e)}')
+        return redirect('home')
 
 
 def incidents_page(request):
