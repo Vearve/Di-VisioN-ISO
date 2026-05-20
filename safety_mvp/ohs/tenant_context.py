@@ -18,15 +18,20 @@ ROLE_ORDER = {
 
 
 def user_tenants(user) -> QuerySet[Tenant]:
+    """
+    Return tenants accessible to user.
+    - Superusers: all active tenants
+    - Regular users: only tenants with active membership
+    """
     if not user.is_authenticated:
         return Tenant.objects.none()
     if user.is_superuser:
-        return Tenant.objects.filter(is_active=True)
+        return Tenant.objects.filter(is_active=True).order_by('name')
     return Tenant.objects.filter(
         memberships__user=user,
         memberships__is_active=True,
         is_active=True,
-    ).distinct()
+    ).distinct().order_by('name')
 
 
 def resolve_current_tenant(request):

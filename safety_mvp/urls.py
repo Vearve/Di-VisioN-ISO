@@ -34,6 +34,7 @@ urlpatterns = [
     path('app/checklists/', views.checklists_page, name='checklists_page'),
     path('app/toolbox-talks/', views.toolbox_talks_page, name='toolbox_talks_page'),
     path('app/employees/', views.employees_page, name='employees_page'),
+    path('app/attendance/', views.attendance_page, name='attendance_page'),
     path('app/contractors/', views.contractors_page, name='contractors_page'),
     path('app/certifications/', views.certifications_page, name='certifications_page'),
     path('app/training/', views.training_page, name='training_page'),

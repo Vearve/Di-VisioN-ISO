@@ -938,6 +938,13 @@ class Contractor(models.Model):
 
 # Employee Model (to track internal employees separately from User auth)
 class Employee(models.Model):
+    SCOPE_CHOICES = [
+        ('local', 'Local'),
+        ('regional', 'Regional'),
+        ('national', 'National'),
+        ('expatriate', 'Expatriate'),
+    ]
+    
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True, related_name='employees')
     site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='employee_profiles')
@@ -946,8 +953,10 @@ class Employee(models.Model):
     department = models.CharField(max_length=255)
     contact_number = models.CharField(max_length=20)
     emergency_contact = models.CharField(max_length=255)
+    scope = models.CharField(max_length=20, choices=SCOPE_CHOICES, default='local')
+    expert_traits = models.TextField(blank=True, help_text='Comma-separated list of expertise areas')
     certifications = models.ManyToManyField(Certification, blank=True, related_name="employees")
-    employee_file = models.FileField(upload_to='employees/files/', blank=True, null=True)  # <-- Add this
+    employee_file = models.FileField(upload_to='employees/files/', blank=True, null=True)
 
 # Objectives Model
 class Objective(models.Model):
@@ -1279,3 +1288,35 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.model_name}:{self.object_id} - {self.action}"
+
+
+# Attendance Tracking
+class AttendanceRecord(models.Model):
+    """Daily attendance tracking with man-hours calculation."""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='attendance_records')
+    site_project = models.ForeignKey(SiteProject, on_delete=models.CASCADE, related_name='attendance_records')
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_records')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    break_duration_minutes = models.PositiveIntegerField(default=0, help_text='Break time in minutes')
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='attendance_records_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('site_project', 'employee', 'date')
+        ordering = ('-date', 'employee')
+
+    def get_man_hours(self):
+        """Calculate man-hours for the day."""
+        from datetime import datetime
+        start = datetime.combine(self.date, self.start_time)
+        end = datetime.combine(self.date, self.end_time)
+        duration_minutes = (end - start).total_seconds() / 60
+        net_minutes = duration_minutes - self.break_duration_minutes
+        return round(max(0, net_minutes) / 60, 2)  # Return hours
+
+    def __str__(self):
+        return f"{self.employee.name} - {self.date} ({self.get_man_hours()}h)"

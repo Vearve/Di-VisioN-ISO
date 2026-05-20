@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 
 from .models import (
+    AttendanceRecord,
     CAPAAction,
     CCVCriticalControlVerification,
     Certification,
@@ -181,6 +182,7 @@ class EmployeeForm(TenantScopedModelForm):
     class Meta:
         model = Employee
         exclude = ('tenant',)
+        fields = ('name', 'position', 'department', 'contact_number', 'emergency_contact', 'scope', 'expert_traits', 'user', 'site', 'certifications', 'employee_file')
 
 
 class ContractorForm(TenantScopedModelForm):
@@ -247,3 +249,10 @@ class SiteProjectForm(TenantScopedModelForm):
     class Meta:
         model = SiteProject
         exclude = ('tenant',)
+
+
+class AttendanceRecordForm(TenantScopedModelForm):
+    class Meta:
+        model = AttendanceRecord
+        exclude = ('tenant',)
+        fields = ('site_project', 'employee', 'date', 'start_time', 'end_time', 'break_duration_minutes', 'notes')

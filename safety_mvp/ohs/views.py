@@ -7,9 +7,10 @@ from django.utils.timezone import localdate
 import operator
 from functools import reduce
 from django.db.models import Q
-from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
+    AttendanceRecordForm,
     CAPAActionForm,
     CCVCriticalControlVerificationForm,
     CertificationForm,
@@ -116,6 +117,7 @@ def home(request):
         'certification_count': scoped(Certification).count(),
         'contractor_count': scoped(Contractor).count(),
         'employee_count': scoped(Employee).count(),
+        'attendance_count': scoped(AttendanceRecord).count(),
         'schedule_count': scoped(ScheduleItem).count(),
         'pending_reminder_count': scoped(Reminder).filter(status='pending').count(),
         'capa_open_count': scoped(CAPAAction).exclude(status='closed').count(),
@@ -1597,13 +1599,42 @@ def employees_page(request):
             ('name', 'Name'),
             ('position', 'Position'),
             ('department', 'Department'),
+            ('scope', 'Scope'),
             ('site', 'Site'),
             ('user', 'User Account'),
         ],
         form_sections=[
             ('Identity', ['site', 'name', 'user', 'position', 'department']),
+            ('Scope & Expertise', ['scope', 'expert_traits']),
             ('Contacts', ['contact_number', 'emergency_contact', 'employee_file']),
             ('Certifications', ['certifications']),
+        ],
+    )
+
+
+def attendance_page(request):
+    return _module_page(
+        request,
+        model=AttendanceRecord,
+        form_class=AttendanceRecordForm,
+        title='Attendance',
+        description='Record daily employee attendance and track man-hours.',
+        route_name='attendance_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('date', 'Date'),
+            ('employee', 'Employee'),
+            ('site_project', 'Site'),
+            ('start_time', 'Start'),
+            ('end_time', 'End'),
+        ],
+        form_sections=[
+            ('Attendance Details', ['site_project', 'employee', 'date']),
+            ('Times', ['start_time', 'end_time', 'break_duration_minutes']),
+            ('Notes', ['notes']),
+        ],
+        list_header_info=[
+            ('Total Man-Hours', lambda records: round(sum(r.get_man_hours() for r in records), 2))
         ],
     )
 

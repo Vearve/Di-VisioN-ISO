@@ -417,6 +417,7 @@
             <div class="menu-group">
                 <h4>Live Sidebar Counts</h4>
                 <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
+                <a href="/app/attendance/">Attendance</a>
                 <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
                 <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
                 <a href="/app/materials/">Materials ({{ sidebar_material_count }})</a>
@@ -656,7 +657,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const pieData = {
-            labels: ['Incidents', 'JSA', 'FRA', 'FLRA', 'Documents', 'Materials', 'Observations', 'Checklists', 'Certifications', 'Contractors', 'Employees'],
+            labels: ['Incidents', 'JSA', 'FRA', 'FLRA', 'Documents', 'Materials', 'Observations', 'Checklists', 'Certifications', 'Contractors', 'Employees', 'Attendance'],
             datasets: [{
                 data: [
                     Number("{{ incident_count|default:'0' }}"),
@@ -669,11 +670,12 @@
                     Number("{{ safetychecklist_count|default:'0' }}"),
                     Number("{{ certification_count|default:'0' }}"),
                     Number("{{ contractor_count|default:'0' }}"),
-                    Number("{{ employee_count|default:'0' }}")
+                    Number("{{ employee_count|default:'0' }}"),
+                    Number("{{ attendance_count|default:'0' }}")
                 ],
                 backgroundColor: [
                     '#1f7a8c', '#3f88c5', '#2a9d8f', '#f4a261', '#e76f51',
-                    '#4c956c', '#bc4749', '#6c757d', '#5c6784', '#2d6a4f', '#495057'
+                    '#4c956c', '#bc4749', '#6c757d', '#5c6784', '#2d6a4f', '#495057', '#8b5a3c'
                 ]
             }]
         };
