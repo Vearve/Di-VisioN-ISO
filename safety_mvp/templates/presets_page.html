@@ -21,9 +21,14 @@
         .muted { color: #6a7d86; }
         .panel { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); max-width: 680px; }
         .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7d86; margin-top: 16px; margin-bottom: 6px; }
-        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; }
-        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; }
-        .btn { margin-top: 16px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; font-weight: 600; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; font-size: 0.9rem; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #0f8f6f; box-shadow: 0 0 0 2px rgba(15, 143, 111, 0.1); }
+        .errorlist { color: #b91c1c; font-size: 0.82rem; margin-top: 4px; list-style: none; padding: 0; }
+        .errorlist li { margin-top: 4px; }
+        .btn { margin-top: 16px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
+        .btn:hover { background: #0a6f54; }
+        .btn:disabled { background: #6a7d86; cursor: not-allowed; }
         .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; max-width: 680px; }
         .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
         @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .target-grid { grid-template-columns: 1fr; } }
@@ -118,22 +123,57 @@
                         <div id="ccv">
                             <label for="id_ccv_target">CCV Target</label>
                             {{ form.ccv_target }}
+                            {% if form.ccv_target.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.ccv_target.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div id="pto">
                             <label for="id_pto_target">PTO Target</label>
                             {{ form.pto_target }}
+                            {% if form.pto_target.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.pto_target.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div id="flra">
                             <label for="id_flra_target">FLRA Target</label>
                             {{ form.flra_target }}
+                            {% if form.flra_target.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.flra_target.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div id="employees">
                             <label for="id_employee_target">Employee Target</label>
                             {{ form.employee_target }}
+                            {% if form.employee_target.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.employee_target.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         <div id="objectives">
                             <label for="id_objective_target">Objective Target</label>
                             {{ form.objective_target }}
+                            {% if form.objective_target.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.objective_target.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                     </div>
                     <button class="btn" type="submit">Save Presets</button>

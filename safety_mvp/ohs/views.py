@@ -302,7 +302,9 @@ def presets_page(request):
     if request.method == 'POST':
         form = TenantPresetForm(request.POST, instance=preset)
         if form.is_valid():
-            form.save()
+            instance = form.save(commit=False)
+            instance.tenant = current_tenant
+            instance.save()
             messages.success(request, 'Preset targets updated successfully.')
             return redirect('presets_page')
     else:
@@ -730,9 +732,13 @@ def jsa_page(request):
 
         jsa_instance.steps.all().delete()
         if step_rows:
-            JSAStep.objects.bulk_create([
-                JSAStep(jsa=jsa_instance, **row) for row in step_rows
-            ])
+            jsa_steps_to_create = []
+            for row in step_rows:
+                step = JSAStep(jsa=jsa_instance, **row)
+                if hasattr(step, 'tenant'):
+                    step.tenant = jsa_instance.tenant
+                jsa_steps_to_create.append(step)
+            JSAStep.objects.bulk_create(jsa_steps_to_create)
 
         jsa_instance.team_member_acknowledgements = parse_people_rows(post_request, 'jsa_team_member', 10)
         jsa_instance.daily_review_log = parse_people_rows(post_request, 'jsa_daily_review', 10)
