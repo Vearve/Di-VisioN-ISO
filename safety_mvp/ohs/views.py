@@ -829,6 +829,7 @@ def _module_page(
         'total_count': total_count,
         'back_url': back_url,
         'back_label': back_label,
+        'export_name': route_name.replace('_page', ''),
         **_sidebar_site_metrics(current_tenant, current_site),
         **(extra_context or {}),
     })

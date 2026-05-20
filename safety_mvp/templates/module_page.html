@@ -355,11 +355,18 @@
 
                 <section class="panel record-wrap">
                     <h3>Recent Records</h3>
-                    <form class="search-bar" method="get" action=".">
-                        <input type="search" name="q" value="{{ search_query }}" placeholder="Search recordsâ€¦">
-                        <button class="btn" type="submit">Search</button>
-                        {% if search_query %}<a class="btn secondary" href=".">Clear</a>{% endif %}
-                    </form>
+                        <div style="display:flex; gap:12px; align-items:center; justify-content:space-between;">
+                            <form class="search-bar" method="get" action=".">
+                                <input type="search" name="q" value="{{ search_query }}" placeholder="Search records…">
+                                <button class="btn" type="submit">Search</button>
+                                {% if search_query %}<a class="btn secondary" href=".">Clear</a>{% endif %}
+                            </form>
+                            <div>
+                                {% if export_name %}
+                                    <a class="btn" href="{% url 'export_pdf' export_name %}">Export PDF</a>
+                                {% endif %}
+                            </div>
+                        </div>
                     {% if total_count is not None %}
                     <p class="records-meta">{{ total_count }} record{{ total_count|pluralize }} found{% if search_query %} for "{{ search_query }}"{% endif %}</p>
                     {% endif %}
