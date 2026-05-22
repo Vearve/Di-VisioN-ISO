@@ -9,3 +9,4 @@ psycopg[binary]==3.2.13
 sqlparse==0.5.3
 tzdata==2025.2
 whitenoise==6.12.0
+reportlab==3.9.0

@@ -8,6 +8,7 @@ authors = ["MansLikeNight <evabloo2342@gmail.com>"]
 python = ">=3.11,<4.0"
 gunicorn = "^23.0.0"
 whitenoise = "^6.9.0"
+reportlab = "^3.9.0"
 
 
 [build-system]
