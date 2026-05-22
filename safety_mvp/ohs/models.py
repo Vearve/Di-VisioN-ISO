@@ -203,6 +203,10 @@ class Incident(models.Model):
     site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='incidents')
     title = models.CharField(max_length=255)
     description = models.TextField()
+
+    @property
+    def site_project(self):
+        return self.site
     date_reported = models.DateField(auto_now_add=True)
     event_datetime = models.DateTimeField(null=True, blank=True)
     reported_by = models.ForeignKey(User, on_delete=models.CASCADE)

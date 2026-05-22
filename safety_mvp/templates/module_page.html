@@ -58,6 +58,10 @@
         .search-bar input[type=search] { flex: 1; max-width: 320px; }
         .search-bar button { margin-top: 0; padding: 8px 14px; }
         .records-meta { font-size: 0.82rem; color: #6a7d86; margin-bottom: 6px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 18px 0; }
+        .summary-card { background: #eefaf6; border: 1px solid #d1e8db; border-radius: 12px; padding: 14px; }
+        .summary-card strong { display: block; font-size: 0.88rem; color: #0f6f53; margin-bottom: 6px; }
+        .summary-card span { font-size: 1.4rem; font-weight: 800; color: #17313b; }
         .info-card { margin-bottom: 12px; padding: 10px; border: 1px dashed #b7c8ce; border-radius: 10px; background: #f8fbfc; }
         .info-card h4 { margin: 0 0 6px; font-size: 0.9rem; }
         .step-list { margin: 8px 0 0; padding-left: 20px; font-size: 0.84rem; color: #27434c; }
@@ -165,6 +169,17 @@
                     <p class="muted">No tenant selected.</p>
                 {% endif %}
             </div>
+
+            {% if summary_cards %}
+                <div class="summary-grid">
+                    {% for label, value in summary_cards %}
+                        <div class="summary-card">
+                            <strong>{{ label }}</strong>
+                            <span>{{ value }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             {% if messages %}
                 {% for message in messages %}

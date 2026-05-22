@@ -682,6 +682,7 @@ def _module_page(
     auto_user_fields=None,
     list_fields=None,
     form_sections=None,
+    list_header_info=None,
     extra_context=None,
     post_save_callback=None,
 ):
@@ -781,6 +782,7 @@ def _module_page(
     if remaining_fields:
         section_blocks.append(('Other Details', remaining_fields))
 
+    summary_cards = extra_context.get('summary_cards', []) if extra_context else []
     resolved_fields = list_fields or [('id', 'ID'), ('__str__', 'Record')]
     list_columns = [label for _, label in resolved_fields]
     list_rows = []
@@ -832,6 +834,7 @@ def _module_page(
         'search_query': search_query,
         'page_obj': page_obj,
         'total_count': total_count,
+        'summary_cards': summary_cards,
         'back_url': back_url,
         'back_label': back_label,
         'export_name': route_name.replace('_page', ''),
@@ -880,6 +883,56 @@ def export_to_pdf(request, module_name):
             buffer = pdf_gen.generate_employees_report(data, site_name)
             filename = f"employees_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
+        elif module_name == 'jsa':
+            data = scope_qs(JSA.objects.all()).order_by('-date')
+            buffer = pdf_gen.generate_jsa_report(data, site_name)
+            filename = f"jsa_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'fra':
+            data = scope_qs(FRA.objects.all()).order_by('-date_assessed')
+            buffer = pdf_gen.generate_fra_report(data, site_name)
+            filename = f"fra_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'flra':
+            data = scope_qs(FLRA.objects.all()).order_by('-date')
+            buffer = pdf_gen.generate_flra_report(data, site_name)
+            filename = f"flra_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'observations':
+            data = scope_qs(Observation.objects.all()).order_by('-date')
+            buffer = pdf_gen.generate_observations_report(data, site_name)
+            filename = f"observations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'toolbox_talks':
+            data = scope_qs(ToolboxTalk.objects.all()).order_by('-talk_date')
+            buffer = pdf_gen.generate_toolbox_talks_report(data, site_name)
+            filename = f"toolbox_talks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'certifications':
+            data = scope_qs(Certification.objects.all()).order_by('-issue_date')
+            buffer = pdf_gen.generate_certifications_report(data, site_name)
+            filename = f"certifications_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'documents':
+            data = scope_qs(Document.objects.all()).order_by('-upload_date')
+            buffer = pdf_gen.generate_documents_report(data, site_name)
+            filename = f"documents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'training':
+            data = scope_qs(TrainingMatrix.objects.all()).order_by('-training_date')
+            buffer = pdf_gen.generate_training_report(data, site_name)
+            filename = f"training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'objectives':
+            data = scope_qs(Objective.objects.all()).order_by('-due_date')
+            buffer = pdf_gen.generate_objectives_report(data, site_name)
+            filename = f"objectives_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'materials':
+            data = scope_qs(Material.objects.all()).order_by('-date_received')
+            buffer = pdf_gen.generate_materials_report(data, site_name)
+            filename = f"materials_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
         elif module_name == 'monthly_site_health_reports':
             data = scope_qs(MonthlySiteHealthReport.objects.all()).order_by('-report_year', '-report_month')
             buffer = pdf_gen.generate_site_health_report(data, site_name)
@@ -908,6 +961,7 @@ def incidents_page(request):
         route_name='incidents_page',
         auto_user_fields=['reported_by'],
         list_fields=[
+            ('site_project', 'Site'),
             ('title', 'Title'),
             ('incident_category', 'Category'),
             ('severity', 'Severity'),
@@ -1906,6 +1960,12 @@ def monthly_site_health_reports_page(request):
             ('Reporting Period', ['site_project', 'report_month', 'report_year']),
             ('Performance Summary', ['incident_count', 'near_miss_count', 'observation_count', 'inspection_count', 'training_hours', 'man_hours']),
             ('Summary Notes', ['safety_summary']),
+        ],
+        list_header_info=[
+            ('Total Reports', lambda records: len(records)),
+            ('Total Man-Hours', lambda records: round(sum(float(getattr(r, 'man_hours', 0) or 0) for r in records), 2)),
+            ('Total Incidents', lambda records: sum(int(getattr(r, 'incident_count', 0) or 0) for r in records)),
+            ('Average Training Hours', lambda records: round((sum(float(getattr(r, 'training_hours', 0) or 0) for r in records) / len(records)) if records else 0, 2)),
         ],
     )
 

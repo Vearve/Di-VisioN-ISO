@@ -90,7 +90,8 @@
             <div style="margin: 30px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0; font-size: 1.25rem;">📊 KPI Performance</h2>
-                    <a href="{% url 'site_presets_page' site_id=site.id %}" style="
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <a href="{% url 'site_presets_page' site_id=site.id %}" style="
                         padding: 8px 16px;
                         background: #0f8f6f;
                         color: white;
@@ -102,7 +103,31 @@
                     " onmouseover="this.style.background='#0a6f54'" onmouseout="this.style.background='#0f8f6f'">
                         ⚙️ Manage Targets
                     </a>
-                </div>
+                        <a href="{% url 'export_pdf' 'incidents' %}" style="
+                        padding: 8px 16px;
+                        background: #2563eb;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                        📥 Export Site Incidents
+                    </a>
+                        <a href="{% url 'export_pdf' 'monthly_site_health_reports' %}" style="
+                        padding: 8px 16px;
+                        background: #9333ea;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#9333ea'">
+                        📄 Export Health Reports
+                    </a>
+                    </div>
                 {% include "site_kpi_cards.html" %}
             </div>
             {% endif %}
