@@ -256,6 +256,7 @@ def home(request):
         'jsa_target': TARGETS['jsa'],
         'fra_target': TARGETS['fra'],
     }
+    
     objectives = scoped(Objective)
     training_matrix = scoped(TrainingMatrix)
     reminders = scoped(Reminder).filter(status='pending').order_by('remind_on', 'due_date')[:8]
@@ -275,6 +276,14 @@ def home(request):
         'can_manage_medical': has_minimum_role(current_role, 'site_manager'),
     }
 
+    sidebar_metrics = _sidebar_site_metrics(current_tenant, current_site) if current_tenant else {
+        'sidebar_employee_count': 0,
+        'sidebar_training_count': 0,
+        'sidebar_objective_count': 0,
+        'sidebar_material_count': 0,
+        'sidebar_document_count': 0,
+    }
+
     return render(request, 'home.html', {
         **data,
         'objectives': objectives,
@@ -289,7 +298,7 @@ def home(request):
         'available_tenants': available_tenants,
         'available_sites': available_sites,
         'current_role': current_role,
-        **_sidebar_site_metrics(current_tenant, current_site),
+        **sidebar_metrics,
         **permissions,
     })
 
