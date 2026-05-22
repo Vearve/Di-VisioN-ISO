@@ -1347,3 +1347,32 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.employee.name} - {self.date} ({self.get_man_hours()}h)"
+
+
+class MonthlySiteHealthReport(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='monthly_site_health_reports')
+    site_project = models.ForeignKey(SiteProject, on_delete=models.CASCADE, related_name='monthly_site_health_reports')
+    report_month = models.PositiveIntegerField(choices=[
+        (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
+        (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
+        (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December'),
+    ], default=1)
+    report_year = models.PositiveIntegerField(default=2026)
+    safety_summary = models.TextField(blank=True)
+    incident_count = models.PositiveIntegerField(default=0)
+    near_miss_count = models.PositiveIntegerField(default=0)
+    observation_count = models.PositiveIntegerField(default=0)
+    inspection_count = models.PositiveIntegerField(default=0)
+    training_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    man_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='monthly_health_reports_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'site_project', 'report_month', 'report_year')
+        ordering = ('-report_year', '-report_month', '-site_project')
+
+    def __str__(self):
+        month_name = dict(self._meta.get_field('report_month').choices).get(self.report_month, str(self.report_month))
+        return f"{self.site_project.name} {month_name} {self.report_year}"

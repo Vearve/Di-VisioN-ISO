@@ -90,18 +90,19 @@ class PDFGenerator:
         story.append(Spacer(1, 0.15*inch))
 
         # Table Data
-        table_data = [['Date', 'Type', 'Severity', 'Description', 'Status']]
+        table_data = [['Date', 'Site / Project', 'Type', 'Severity', 'Description', 'Status']]
         for incident in incidents[:100]:  # Limit to 100 per page
             table_data.append([
                 incident.date_of_incident.strftime('%m/%d/%Y') if incident.date_of_incident else 'N/A',
-                incident.get_incident_type_display() if hasattr(incident, 'get_incident_type_display') else incident.incident_type[:15],
-                incident.get_severity_display() if hasattr(incident, 'get_severity_display') else incident.severity[:10],
+                incident.site.name if getattr(incident, 'site', None) else 'Unknown',
+                incident.get_incident_type_display() if hasattr(incident, 'get_incident_type_display') else getattr(incident, 'incident_type', '')[:15],
+                incident.get_severity_display() if hasattr(incident, 'get_severity_display') else getattr(incident, 'severity', '')[:10],
                 incident.description[:40] + '...' if len(incident.description or '') > 40 else incident.description or '',
                 incident.status if hasattr(incident, 'status') else 'Open'
             ])
 
         # Create table
-        table = Table(table_data, colWidths=[1.2*inch, 1.2*inch, 1*inch, 1.8*inch, 0.8*inch])
+        table = Table(table_data, colWidths=[1*inch, 1.5*inch, 1.1*inch, 1*inch, 1.4*inch, 0.8*inch])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f8f6f')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -255,6 +256,66 @@ class PDFGenerator:
         story.append(table)
 
         # Footer
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph(
+            f"<b>Page generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | OHS ISO 45001 Toolkit",
+            self.styles['CustomNormal']
+        ))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_site_health_report(self, reports, site_name=""):
+        """Generate PDF report for monthly site health and safety summaries."""
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            rightMargin=0.75*inch,
+            leftMargin=0.75*inch,
+            topMargin=0.75*inch,
+            bottomMargin=0.75*inch
+        )
+
+        story = []
+        story.append(Paragraph("Monthly Site Health & Safety Report", self.styles['CustomTitle']))
+        if self.company_name:
+            story.append(Paragraph(self.company_name, self.styles['Normal']))
+        if site_name:
+            story.append(Paragraph(f"Site: {site_name}", self.styles['Normal']))
+        story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}", self.styles['Normal']))
+        story.append(Spacer(1, 0.3*inch))
+
+        table_data = [['Month', 'Year', 'Site / Project', 'Incidents', 'Near Misses', 'Inspections', 'Training Hours', 'Man-Hours']]
+        for report in reports[:100]:
+            month_name = dict(report._meta.get_field('report_month').choices).get(report.report_month, str(report.report_month))
+            table_data.append([
+                month_name,
+                str(report.report_year),
+                report.site_project.name if report.site_project else 'Unknown',
+                str(report.incident_count),
+                str(report.near_miss_count),
+                str(report.inspection_count),
+                f"{float(report.training_hours):.1f}",
+                f"{float(report.man_hours):.1f}",
+            ])
+
+        table = Table(table_data, colWidths=[0.9*inch, 0.8*inch, 1.5*inch, 0.9*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f8f6f')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ]))
+
+        story.append(table)
         story.append(Spacer(1, 0.3*inch))
         story.append(Paragraph(
             f"<b>Page generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | OHS ISO 45001 Toolkit",

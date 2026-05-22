@@ -26,6 +26,7 @@ from .models import (
     TenantPreset,
     TenantMembership,
     ToolboxTalk,
+    MonthlySiteHealthReport,
     TrainingMatrix,
 )
 
@@ -47,6 +48,8 @@ class TenantScopedModelForm(forms.ModelForm):
 
         if 'site' in self.fields:
             self.fields['site'].queryset = SiteProject.objects.filter(tenant=tenant).order_by('name')
+        if 'site_project' in self.fields:
+            self.fields['site_project'].queryset = SiteProject.objects.filter(tenant=tenant).order_by('name')
 
         member_user_ids = TenantMembership.objects.filter(
             tenant=tenant,
@@ -191,6 +194,12 @@ class EmployeeForm(TenantScopedModelForm):
         model = Employee
         exclude = ('tenant',)
         fields = ('name', 'position', 'department', 'contact_number', 'emergency_contact', 'scope', 'expert_traits', 'user', 'site', 'certifications', 'employee_file')
+
+
+class MonthlySiteHealthReportForm(TenantScopedModelForm):
+    class Meta:
+        model = MonthlySiteHealthReport
+        exclude = ('tenant',)
 
 
 class ContractorForm(TenantScopedModelForm):

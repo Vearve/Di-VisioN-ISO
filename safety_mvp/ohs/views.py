@@ -9,7 +9,7 @@ import operator
 from functools import reduce
 from django.db.models import Q
 from .pdf_export import PDFGenerator
-from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
     AttendanceRecordForm,
@@ -36,6 +36,7 @@ from .forms import (
     TenantPresetForm,
     ToolboxTalkForm,
     TrainingMatrixForm,
+    MonthlySiteHealthReportForm,
 )
 
 TARGETS = {
@@ -172,8 +173,11 @@ def _scope_queryset(qs, current_tenant=None, current_site=None):
         return qs.none()
 
     scoped = qs.filter(tenant=current_tenant)
-    if current_site and any(field.name == 'site' for field in qs.model._meta.fields):
-        scoped = scoped.filter(site=current_site)
+    if current_site:
+        if any(field.name == 'site' for field in qs.model._meta.fields):
+            scoped = scoped.filter(site=current_site)
+        if any(field.name == 'site_project' for field in qs.model._meta.fields):
+            scoped = scoped.filter(site_project=current_site)
     return scoped
 
 
@@ -581,6 +585,7 @@ def site_manage_page(request, site_id):
         ('Toolbox Talks', '/app/toolbox-talks/', ToolboxTalk.objects.filter(tenant=current_tenant, site=site).count()),
         ('Incidents', '/app/incidents/', Incident.objects.filter(tenant=current_tenant, site=site).count()),
         ('Employees', '/app/employees/', Employee.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Monthly Health Reports', '/app/monthly-health-reports/', MonthlySiteHealthReport.objects.filter(tenant=current_tenant, site_project=site).count()),
         ('Training', '/app/training/', TrainingMatrix.objects.filter(tenant=current_tenant, site=site).count()),
         ('Objectives', '/app/objectives/', Objective.objects.filter(tenant=current_tenant, site=site).count()),
         ('Materials', '/app/materials/', Material.objects.filter(tenant=current_tenant, site=site).count()),
@@ -874,6 +879,11 @@ def export_to_pdf(request, module_name):
             data = scope_qs(Employee.objects.all()).order_by('name')
             buffer = pdf_gen.generate_employees_report(data, site_name)
             filename = f"employees_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'monthly_site_health_reports':
+            data = scope_qs(MonthlySiteHealthReport.objects.all()).order_by('-report_year', '-report_month')
+            buffer = pdf_gen.generate_site_health_report(data, site_name)
+            filename = f"monthly_site_health_reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
         else:
             messages.error(request, f'Export not available for {module_name}')
@@ -1872,6 +1882,30 @@ def attendance_page(request):
         ],
         list_header_info=[
             ('Total Man-Hours', lambda records: round(sum(r.get_man_hours() for r in records), 2))
+        ],
+    )
+
+
+def monthly_site_health_reports_page(request):
+    return _module_page(
+        request,
+        model=MonthlySiteHealthReport,
+        form_class=MonthlySiteHealthReportForm,
+        title='Monthly Site Health Reports',
+        description='Create monthly project health and safety summaries for each site.',
+        route_name='monthly_site_health_reports_page',
+        user_role_min='supervisor',
+        list_fields=[
+            ('report_month', 'Month'),
+            ('report_year', 'Year'),
+            ('site_project', 'Site'),
+            ('incident_count', 'Incidents'),
+            ('man_hours', 'Man-Hours'),
+        ],
+        form_sections=[
+            ('Reporting Period', ['site_project', 'report_month', 'report_year']),
+            ('Performance Summary', ['incident_count', 'near_miss_count', 'observation_count', 'inspection_count', 'training_hours', 'man_hours']),
+            ('Summary Notes', ['safety_summary']),
         ],
     )
 
