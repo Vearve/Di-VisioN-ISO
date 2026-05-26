@@ -92,19 +92,23 @@ WSGI_APPLICATION = 'safety_mvp.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-database_url = os.getenv('DATABASE_URL')
-if database_url:
-    if IS_PRODUCTION and not database_url.startswith(('postgres://', 'postgresql://')):
+if IS_PRODUCTION:
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise ImproperlyConfigured('DATABASE_URL is required in production.')
+    if not database_url.startswith(('postgres://', 'postgresql://')):
         raise ImproperlyConfigured('DATABASE_URL must be a PostgreSQL URL in production.')
-    # Production: PostgreSQL via DATABASE_URL
+
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(default=database_url, conn_max_age=600, ssl_require=IS_PRODUCTION)
+        'default': dj_database_url.config(
+            default=database_url,
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-elif IS_PRODUCTION:
-    raise ImproperlyConfigured('DATABASE_URL is required in production.')
 else:
-    # Local development: SQLite
+    # Local development only: SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
