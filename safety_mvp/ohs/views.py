@@ -49,6 +49,10 @@ TARGETS = {
 }
 
 
+def safe_root(request):
+    return HttpResponse('App is running', content_type='text/plain')
+
+
 def _calculate_kpi_metrics(site, tenant, date_from=None, date_to=None):
     """Calculate KPI metrics for a project/site."""
     from django.utils.timezone import localdate

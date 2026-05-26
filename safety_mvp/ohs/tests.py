@@ -78,3 +78,12 @@ class EnsureSuperuserCommandTests(TestCase):
 
             with self.assertRaises(CommandError):
                 call_command('ensure_superuser')
+
+
+class SafeRootViewTests(TestCase):
+    def test_safe_root_returns_running_message(self):
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode(), 'App is running')
+        self.assertEqual(response['Content-Type'], 'text/plain')
