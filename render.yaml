@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: ./build.sh
-    startCommand: gunicorn safety_mvp.wsgi:application
+    startCommand: python manage.py migrate && gunicorn safety_mvp.wsgi:application
     envVars:
       - key: DEBUG
         value: false
