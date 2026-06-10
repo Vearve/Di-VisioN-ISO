@@ -95,11 +95,11 @@ def _calculate_kpi_metrics(site, tenant, date_from=None, date_to=None):
     incidents = Incident.objects.filter(
         site=site,
         tenant=tenant,
-        date_of_incident__gte=date_from,
-        date_of_incident__lte=date_to
+        event_datetime__date__gte=date_from,
+        event_datetime__date__lte=date_to
     )
     incident_count = incidents.count()
-    high_severity_incidents = incidents.filter(severity='high').count()
+    high_severity_incidents = incidents.filter(severity='Fatality').count()
     
     # Count safety assessments/JSAs
     jsa_count = JSA.objects.filter(
@@ -902,7 +902,7 @@ def export_to_pdf(request, module_name):
 
     try:
         if module_name == 'incidents':
-            data = scope_qs(Incident.objects.all()).order_by('-date_of_incident')
+            data = scope_qs(Incident.objects.all()).order_by('-event_datetime')
             buffer = pdf_gen.generate_incidents_report(data, site_name)
             filename = f"incidents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
@@ -2030,8 +2030,8 @@ def monthly_report_autofill(request):
     date_from = _date(year, month, 1)
     date_to = _date(year, month, last_day)
 
-    incident_count = Incident.objects.filter(tenant=current_tenant, site=site, date_of_incident__range=(date_from, date_to)).count()
-    near_miss_count = Incident.objects.filter(tenant=current_tenant, site=site, date_of_incident__range=(date_from, date_to), severity='near_miss').count()
+    incident_count = Incident.objects.filter(tenant=current_tenant, site=site, event_datetime__date__range=(date_from, date_to)).count()
+    near_miss_count = Incident.objects.filter(tenant=current_tenant, site=site, event_datetime__date__range=(date_from, date_to), severity='Near Miss').count()
     observation_count = Observation.objects.filter(tenant=current_tenant, site=site, date_observed__range=(date_from, date_to)).count()
     inspection_count = SafetyChecklist.objects.filter(tenant=current_tenant, site=site, date_completed__range=(date_from, date_to)).count()
 
