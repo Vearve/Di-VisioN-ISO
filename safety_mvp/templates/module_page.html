@@ -8,90 +8,247 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
-        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
-        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
-        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
-        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
-        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
-        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
-        .content { padding: 24px; }
-        .header { margin-bottom: 16px; }
-        .header-top { margin-bottom: 10px; }
+        :root {
+            --bg: #060d1c;
+            --surface: rgba(10, 22, 44, 0.88);
+            --text: #c8e8f8;
+            --text-bright: #eef8ff;
+            --muted: #5a8ca8;
+            --line: rgba(0, 180, 220, 0.11);
+            --accent: #00d4ff;
+            --accent2: #00ffb3;
+            --accent-grd: linear-gradient(135deg, #00d4ff 0%, #00ffb3 100%);
+            --danger: #ff4d6d;
+            --sidebar-text: #a8ccdb;
+            --glow-sm: 0 0 18px rgba(0,212,255,0.18);
+            --card-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(0,180,220,0.07) inset;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,100,200,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,200,150,0.06) 0%, transparent 55%);
+        }
+
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
+
+        /* ─── Sidebar ─────────────────────────────────────────────── */
+        .sidebar {
+            background: linear-gradient(180deg, #030810 0%, #050f20 100%);
+            color: var(--sidebar-text);
+            padding: 20px 14px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(0,180,220,0.07);
+        }
+        .sidebar::-webkit-scrollbar { width: 3px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(0,180,220,0.18); border-radius: 3px; }
+
+        .logo-area {
+            margin-bottom: 18px;
+            padding: 12px;
+            background: rgba(0,180,220,0.05);
+            border: 1px solid rgba(0,180,220,0.13);
+            border-radius: 12px;
+        }
+        .logo-area img.company-logo {
+            max-width: 100%;
+            max-height: 52px;
+            object-fit: contain;
+            display: block;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+        .brand-mark { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+        .brand-diamond {
+            font-size: 1.3rem;
+            background: var(--accent-grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.93rem; color: #fff; }
+        .brand-sub { font-size: 0.64rem; color: var(--muted); letter-spacing: 0.06em; }
+        .tenant-info { font-size: 0.78rem; padding-top: 6px; border-top: 1px solid rgba(0,180,220,0.1); }
+        .tenant-info strong { display: block; color: #fff; font-size: 0.83rem; }
+        .tenant-info .muted-sm { color: var(--muted); font-size: 0.7rem; }
+
+        .menu-group { margin-top: 12px; }
+        .menu-group h4 { margin: 0 0 7px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,180,220,0.52); }
+        .menu-group a {
+            display: block;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 7px 10px;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+            transition: all 0.16s;
+        }
+        .menu-group a:hover { background: rgba(0,200,255,0.08); color: var(--accent); border-color: rgba(0,200,255,0.22); }
+        .menu-group a.active { background: rgba(0,200,255,0.11); color: var(--accent); border-color: rgba(0,200,255,0.32); }
+
+        /* ─── Content ─────────────────────────────────────────────── */
+        .content { padding: 20px; }
+
+        .header { margin-bottom: 14px; }
+        .header-top { margin-bottom: 8px; }
+
         .back-link {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            color: #0f8f6f;
+            color: var(--accent);
             text-decoration: none;
             font-weight: 700;
-            font-size: 0.88rem;
-            padding: 6px 10px;
-            border: 1px solid #b9d8cf;
+            font-size: 0.84rem;
+            padding: 5px 12px;
+            border: 1px solid rgba(0,212,255,0.25);
             border-radius: 999px;
-            background: #eefaf6;
+            background: rgba(0,212,255,0.07);
+            transition: all 0.18s;
         }
-        .back-link:hover { background: #dff5ee; }
-        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
-        .muted { color: #6a7d86; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .panel { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 14px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
-        .panel h3 { margin-top: 0; }
-        .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7d86; margin-top: 16px; margin-bottom: 6px; }
-        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; }
-        input, select, textarea { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; }
-        textarea { min-height: 80px; }
-        .btn { margin-top: 12px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor: pointer; }
-        .btn.secondary { background: #4b5563; margin-left: 6px; }
-        .btn.danger { background: #b91c1c; }
+        .back-link:hover { background: rgba(0,212,255,0.13); border-color: rgba(0,212,255,0.45); }
+
+        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; color: var(--text-bright); }
+        .muted { color: var(--muted); }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(18px);
+        }
+        .panel h3 { margin-top: 0; color: var(--text-bright); font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; }
+
+        .section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em; color: rgba(0,180,220,0.55); margin-top: 14px; margin-bottom: 5px; }
+
+        label { display: block; font-size: 0.82rem; margin-top: 9px; color: var(--muted); font-weight: 600; }
+        input, select, textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,180,220,0.2);
+            margin-top: 4px;
+            font-size: 0.88rem;
+            background: rgba(6,13,28,0.8);
+            color: var(--text);
+            font-family: 'Manrope', sans-serif;
+            transition: border-color 0.16s, box-shadow 0.16s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(0,212,255,0.12);
+        }
+        textarea { min-height: 76px; }
+        select option { background: #09152a; }
+
+        .btn {
+            margin-top: 10px;
+            background: var(--accent-grd);
+            color: #030810;
+            border: none;
+            border-radius: 9px;
+            padding: 9px 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-family: 'Manrope', sans-serif;
+            transition: opacity 0.18s, box-shadow 0.18s;
+        }
+        .btn:hover { opacity: 0.86; box-shadow: var(--glow-sm); }
+        .btn.secondary { background: rgba(90,140,168,0.25); color: var(--sidebar-text); border: 1px solid rgba(90,140,168,0.3); }
+        .btn.secondary:hover { background: rgba(90,140,168,0.35); }
+        .btn.danger { background: none; color: var(--danger); border: 1px solid rgba(255,77,109,0.35); background: rgba(255,77,109,0.08); }
+        .btn.danger:hover { background: rgba(255,77,109,0.16); box-shadow: 0 0 12px rgba(255,77,109,0.2); }
+
         .actions { display: flex; gap: 8px; align-items: center; }
         .inline-form { display: inline; margin: 0; }
-        .action-link { color: #0f8f6f; text-decoration: none; font-weight: 700; }
-        .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
-        .errorlist { color: #b91c1c; margin: 0; padding-left: 16px; font-size: 0.82rem; }
-        .helptext { display: block; margin-top: 4px; color: #6a7d86; font-size: 0.8rem; }
-        table { width: 100%; border-collapse: collapse; min-width: 640px; }
-        th, td { border-bottom: 1px solid #dfe6e8; padding: 8px; text-align: left; font-size: 0.88rem; vertical-align: top; }
-        th { color: #6a7d86; text-transform: uppercase; font-size: 0.76rem; letter-spacing: 0.05em; }
-        .record-wrap { overflow-x: auto; max-height: 70vh; }
-        .search-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .search-bar input[type=search] { flex: 1; max-width: 320px; }
-        .search-bar button { margin-top: 0; padding: 8px 14px; }
-        .records-meta { font-size: 0.82rem; color: #6a7d86; margin-bottom: 6px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 18px 0; }
-        .summary-card { background: #eefaf6; border: 1px solid #d1e8db; border-radius: 12px; padding: 14px; }
-        .summary-card strong { display: block; font-size: 0.88rem; color: #0f6f53; margin-bottom: 6px; }
-        .summary-card span { font-size: 1.4rem; font-weight: 800; color: #17313b; }
-        .info-card { margin-bottom: 12px; padding: 10px; border: 1px dashed #b7c8ce; border-radius: 10px; background: #f8fbfc; }
-        .info-card h4 { margin: 0 0 6px; font-size: 0.9rem; }
-        .step-list { margin: 8px 0 0; padding-left: 20px; font-size: 0.84rem; color: #27434c; }
-        .step-list li { margin-bottom: 4px; }
-        .pagination { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-        .pagination a, .pagination span { padding: 5px 10px; border-radius: 7px; font-size: 0.84rem; font-weight: 600; border: 1px solid #dfe6e8; background: #fff; color: #17313b; text-decoration: none; }
-        .pagination a:hover { background: #e6f0f3; }
-        .pagination .current { background: #0f8f6f; color: #fff; border-color: #0f8f6f; }
-        .pagination .disabled { color: #b0c0c5; border-color: #edf1f3; cursor: default; }
-        .searchable-multiselect { margin-top: 4px; border: 1px solid #d1dde1; border-radius: 10px; background: #fff; overflow: hidden; }
-        .searchable-multiselect-input { border: 0; border-bottom: 1px solid #dfe6e8; border-radius: 0; margin-top: 0; padding: 10px; }
-        .searchable-multiselect-summary { padding: 8px 10px; font-size: 0.8rem; color: #6a7d86; background: #f8fbfc; border-bottom: 1px solid #dfe6e8; }
-        .searchable-multiselect-options { max-height: 220px; overflow-y: auto; padding: 6px; }
-        .searchable-multiselect-option { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; }
-        .searchable-multiselect-option:hover { background: #f1f7f8; }
-        .searchable-multiselect-option input { width: auto; margin: 0; }
-        .searchable-multiselect-empty { padding: 10px; color: #6a7d86; font-size: 0.8rem; }
-        /* Tablet */
-        @media (max-width: 1120px) {
-            .layout { grid-template-columns: 1fr; }
-            .grid { grid-template-columns: 1fr; }
-        }
 
+        .action-link { color: var(--accent); text-decoration: none; font-weight: 700; font-size: 0.84rem; }
+        .action-link:hover { text-decoration: underline; }
+
+        .flash { background: rgba(0,255,179,0.1); border: 1px solid rgba(0,255,179,0.3); color: #00ffb3; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 0.88rem; }
+        .errorlist { color: var(--danger); margin: 0; padding-left: 16px; font-size: 0.8rem; }
+        .helptext { display: block; margin-top: 3px; color: var(--muted); font-size: 0.76rem; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { border-bottom: 1px solid rgba(0,180,220,0.07); padding: 8px; text-align: left; font-size: 0.84rem; vertical-align: top; color: var(--text); }
+        th { color: var(--muted); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.06em; }
+        tbody tr:hover td { background: rgba(0,180,220,0.04); }
+
+        .record-wrap { overflow-x: auto; max-height: 70vh; }
+        .search-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .search-bar input[type=search] { flex: 1; max-width: 300px; }
+        .search-bar button { margin-top: 0; }
+        .records-meta { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 14px 0; }
+        .summary-card {
+            background: rgba(0,212,255,0.07);
+            border: 1px solid rgba(0,212,255,0.18);
+            border-radius: 11px;
+            padding: 13px;
+            backdrop-filter: blur(12px);
+        }
+        .summary-card strong { display: block; font-size: 0.82rem; color: var(--accent); margin-bottom: 5px; }
+        .summary-card span { font-size: 1.35rem; font-weight: 800; color: var(--text-bright); }
+
+        .info-card {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid rgba(0,180,220,0.18);
+            border-radius: 10px;
+            background: rgba(0,180,220,0.05);
+        }
+        .info-card h4 { margin: 0 0 6px; font-size: 0.86rem; color: var(--text-bright); }
+
+        .step-list { margin: 6px 0 0; padding-left: 18px; font-size: 0.82rem; color: var(--sidebar-text); }
+        .step-list li { margin-bottom: 4px; }
+
+        .pagination { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+        .pagination a, .pagination span {
+            padding: 5px 10px;
+            border-radius: 7px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(0,180,220,0.18);
+            background: rgba(10,22,44,0.8);
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .pagination a:hover { background: rgba(0,212,255,0.1); color: var(--accent); border-color: rgba(0,212,255,0.35); }
+        .pagination .current { background: rgba(0,212,255,0.15); color: var(--accent); border-color: rgba(0,212,255,0.4); }
+        .pagination .disabled { color: rgba(90,140,168,0.35); border-color: rgba(0,180,220,0.07); cursor: default; }
+
+        /* Searchable multiselect */
+        .searchable-multiselect { margin-top: 4px; border: 1px solid rgba(0,180,220,0.2); border-radius: 10px; background: rgba(6,13,28,0.85); overflow: hidden; }
+        .searchable-multiselect-input { border: 0; border-bottom: 1px solid rgba(0,180,220,0.15); border-radius: 0; margin-top: 0; padding: 9px 10px; background: transparent; }
+        .searchable-multiselect-summary { padding: 7px 10px; font-size: 0.76rem; color: var(--muted); background: rgba(0,180,220,0.04); border-bottom: 1px solid rgba(0,180,220,0.1); }
+        .searchable-multiselect-options { max-height: 210px; overflow-y: auto; padding: 6px; }
+        .searchable-multiselect-option { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: 7px; cursor: pointer; }
+        .searchable-multiselect-option:hover { background: rgba(0,180,220,0.08); }
+        .searchable-multiselect-option input { width: auto; margin: 0; }
+        .searchable-multiselect-empty { padding: 10px; color: var(--muted); font-size: 0.78rem; }
+
+        /* Responsive */
+        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
         @media (max-width: 1024px) {
-            .layout { grid-template-columns: 1fr; }
             .sidebar {
-                position: fixed;
-                left: 0;
-                top: 60px;
-                width: 270px;
+                position: fixed; left: 0; top: 60px; width: 270px;
                 height: calc(100vh - 60px);
                 transform: translateX(-100%);
                 transition: transform 0.28s cubic-bezier(.4,0,.2,1);
@@ -99,69 +256,26 @@
             }
             .sidebar.drawer-open { transform: translateX(0); }
             .grid { grid-template-columns: 1fr; }
-            .content { padding: 16px; }
+            .content { padding: 14px; }
         }
-
-        /* Phone */
         @media (max-width: 768px) {
-            .layout { grid-template-columns: 1fr; }
-
             .content { padding: 10px; }
-
-            .header h1 { font-size: 1.05rem; }
-            .header p { font-size: 0.82rem; }
-
-            .grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-
-            .panel { border-radius: 12px; padding: 12px; }
-            .panel h3 { font-size: 0.95rem; margin-bottom: 8px; }
-
-            /* Form elements bigger for touch */
-            input, select, textarea {
-                padding: 11px 10px;
-                font-size: 1rem;
-                border-radius: 10px;
-            }
-
-            label { font-size: 0.86rem; margin-top: 12px; }
-
-            /* Larger tap targets for buttons */
-            .btn {
-                padding: 13px 16px;
-                font-size: 0.95rem;
-                border-radius: 12px;
-                min-height: 48px;
-            }
-
-            /* Actions row wraps on small screens */
+            .header h1 { font-size: 1rem; }
+            .grid { grid-template-columns: 1fr; gap: 10px; }
+            .panel { border-radius: 11px; padding: 11px; }
+            input, select, textarea { padding: 10px; font-size: 0.95rem; border-radius: 9px; }
+            label { font-size: 0.84rem; margin-top: 11px; }
+            .btn { padding: 12px 14px; font-size: 0.92rem; border-radius: 10px; min-height: 46px; }
             .actions { flex-wrap: wrap; gap: 6px; }
-
-            /* Table scroll */
             .record-wrap { max-height: none; }
-            table { min-width: 480px; font-size: 0.8rem; }
-            th { font-size: 0.72rem; }
-            th, td { padding: 8px 6px; }
-
-            /* Pagination bigger taps */
-            .pagination a, .pagination span { padding: 9px 13px; font-size: 0.82rem; }
-
-            /* Search bar stacks */
-            .search-bar { flex-wrap: wrap; }
-            .search-bar input[type=search] { max-width: 100%; flex: 1 1 160px; }
-
-            /* Back link */
-            .back-link { font-size: 0.82rem; }
-
-            /* Summary cards scroll horizontally */
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-            .summary-card { padding: 10px; border-radius: 10px; }
-            .summary-card span { font-size: 1.2rem; }
+            table { min-width: 450px; }
+            th, td { padding: 7px 5px; font-size: 0.76rem; }
+            th { font-size: 0.68rem; }
+            .pagination a, .pagination span { padding: 8px 11px; font-size: 0.78rem; }
+            .search-bar input[type=search] { max-width: 100%; flex: 1 1 150px; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 7px; }
+            .summary-card { padding: 10px; border-radius: 9px; }
+            .summary-card span { font-size: 1.15rem; }
         }
     </style>
 </head>
@@ -169,7 +283,27 @@
     {% include "_header.html" %}
     <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
-            <div class="brand">Safety Command Center</div>
+            <div class="logo-area">
+                {% if company_logo_url %}
+                    <img src="{{ company_logo_url }}" alt="{{ current_tenant.name }}" class="company-logo">
+                {% else %}
+                    <div class="brand-mark">
+                        <span class="brand-diamond">&#9670;</span>
+                        <div>
+                            <div class="brand-name">Di-VisioN</div>
+                            <div class="brand-sub">ISO Toolkit</div>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="tenant-info">
+                    {% if current_tenant %}
+                        <strong>{{ current_tenant.name }}</strong>
+                        <span class="muted-sm">{{ current_site.name|default:"All Sites" }}</span>
+                    {% else %}
+                        <strong>No Tenant</strong>
+                    {% endif %}
+                </div>
+            </div>
 
             <div class="menu-group">
                 <h4>Main</h4>
@@ -183,7 +317,7 @@
             </div>
 
             <div class="menu-group">
-                <h4>People & Docs</h4>
+                <h4>People &amp; Docs</h4>
                 <a href="/app/contractors/" class="{% if active_route == 'contractors_page' %}active{% endif %}">Contractors</a>
                 <a href="/app/certifications/" class="{% if active_route == 'certifications_page' %}active{% endif %}">Certifications</a>
                 <a href="/app/training/" class="{% if active_route == 'training_page' %}active{% endif %}">Training</a>
@@ -201,7 +335,7 @@
             </div>
 
             <div class="menu-group">
-                <h4>Live Sidebar Counts</h4>
+                <h4>Live Counts</h4>
                 <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
                 <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
                 <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
@@ -218,9 +352,7 @@
                 <h1>{{ title }}</h1>
                 <p class="muted">{{ description }}</p>
                 {% if current_tenant %}
-                    <p class="muted">Tenant: {{ current_tenant.name }} | Site: {{ current_site.name|default:"All Sites" }} | Role: {{ current_role|default:"unknown" }}</p>
-                {% else %}
-                    <p class="muted">No tenant selected.</p>
+                    <p class="muted" style="font-size:0.8rem;">{{ current_tenant.name }} &middot; {{ current_site.name|default:"All Sites" }} &middot; {{ current_role|default:"unknown" }}</p>
                 {% endif %}
             </div>
 
@@ -278,18 +410,8 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>S/N</th>
-                                            <th>Job Step</th>
-                                            <th>Job Step Hazard</th>
-                                            <th>Current Controls</th>
-                                            <th>Control Type</th>
-                                            <th>L</th>
-                                            <th>C</th>
-                                            <th>Risk</th>
-                                            <th>Additional Actions</th>
-                                            <th>L</th>
-                                            <th>C</th>
-                                            <th>Risk</th>
+                                            <th>S/N</th><th>Job Step</th><th>Hazard</th><th>Controls</th><th>Control Type</th>
+                                            <th>L</th><th>C</th><th>Risk</th><th>Additional Actions</th><th>L</th><th>C</th><th>Risk</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -307,55 +429,13 @@
                                                     {% endfor %}
                                                 </select>
                                             </td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_likelihood_before">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.likelihood_before == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_consequence_before">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.consequence_before == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_residual_risk_before">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.residual_risk_before == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_likelihood_before"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.likelihood_before == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_consequence_before"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.consequence_before == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_residual_risk_before"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.residual_risk_before == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
                                             <td><textarea name="jsa_step_{{ row.step_number }}_required_additional_actions">{{ row.required_additional_actions }}</textarea></td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_likelihood_after">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.likelihood_after == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_consequence_after">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.consequence_after == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="jsa_step_{{ row.step_number }}_residual_risk_after">
-                                                    <option value=""></option>
-                                                    {% for value, label in jsa_step_choice_map.risk_levels %}
-                                                        <option value="{{ value }}" {% if row.residual_risk_after == value %}selected{% endif %}>{{ label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_likelihood_after"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.likelihood_after == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_consequence_after"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.consequence_after == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+                                            <td><select name="jsa_step_{{ row.step_number }}_residual_risk_after"><option value=""></option>{% for value, label in jsa_step_choice_map.risk_levels %}<option value="{{ value }}" {% if row.residual_risk_after == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
@@ -367,14 +447,7 @@
                             <div class="section-title">Team Member Acknowledgement</div>
                             <div class="record-wrap">
                                 <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Name</th>
-                                            <th>ID No.</th>
-                                            <th>Signature</th>
-                                        </tr>
-                                    </thead>
+                                    <thead><tr><th>Date</th><th>Name</th><th>ID No.</th><th>Signature</th></tr></thead>
                                     <tbody>
                                         {% for row in jsa_team_rows %}
                                         <tr>
@@ -390,17 +463,10 @@
                         {% endif %}
 
                         {% if jsa_review_rows %}
-                            <div class="section-title">Team Member Review For More Than One Shift</div>
+                            <div class="section-title">Team Member Review (Multi-Shift)</div>
                             <div class="record-wrap">
                                 <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Name</th>
-                                            <th>ID No.</th>
-                                            <th>Signature</th>
-                                        </tr>
-                                    </thead>
+                                    <thead><tr><th>Date</th><th>Name</th><th>ID No.</th><th>Signature</th></tr></thead>
                                     <tbody>
                                         {% for row in jsa_review_rows %}
                                         <tr>
@@ -424,36 +490,32 @@
 
                 <section class="panel record-wrap">
                     <h3>Recent Records</h3>
-                        <div style="display:flex; gap:12px; align-items:center; justify-content:space-between;">
-                            <form class="search-bar" method="get" action=".">
-                                <input type="search" name="q" value="{{ search_query }}" placeholder="Search records…">
-                                <button class="btn" type="submit">Search</button>
-                                {% if search_query %}<a class="btn secondary" href=".">Clear</a>{% endif %}
-                            </form>
-                            <div>
-                                {% if export_name %}
-                                    <a class="btn" href="{% url 'export_pdf' export_name %}">Export PDF</a>
-                                {% endif %}
-                            </div>
+                    <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:8px;">
+                        <form class="search-bar" method="get" action=".">
+                            <input type="search" name="q" value="{{ search_query }}" placeholder="Search records…">
+                            <button class="btn" type="submit" style="margin-top:0;">Search</button>
+                            {% if search_query %}<a class="btn secondary" href="." style="margin-top:0;">Clear</a>{% endif %}
+                        </form>
+                        <div>
+                            {% if export_name %}
+                                <a class="btn" href="{% url 'export_pdf' export_name %}" style="margin-top:0;">Export PDF</a>
+                            {% endif %}
                         </div>
+                    </div>
                     {% if total_count is not None %}
                     <p class="records-meta">{{ total_count }} record{{ total_count|pluralize }} found{% if search_query %} for "{{ search_query }}"{% endif %}</p>
                     {% endif %}
                     <table>
                         <thead>
                             <tr>
-                                {% for column in list_columns %}
-                                    <th>{{ column }}</th>
-                                {% endfor %}
+                                {% for column in list_columns %}<th>{{ column }}</th>{% endfor %}
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for row in list_rows %}
                             <tr>
-                                {% for val in row.values %}
-                                    <td>{{ val }}</td>
-                                {% endfor %}
+                                {% for val in row.values %}<td>{{ val }}</td>{% endfor %}
                                 <td>
                                     <div class="actions">
                                         <a class="action-link" href="?edit={{ row.id }}">Edit</a>
@@ -466,9 +528,7 @@
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="99" class="muted">No records yet for this module.</td>
-                            </tr>
+                            <tr><td colspan="99" class="muted">No records yet for this module.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -482,9 +542,7 @@
                             <span class="disabled">&laquo; First</span>
                             <span class="disabled">Prev</span>
                         {% endif %}
-
                         <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
                         {% if page_obj.has_next %}
                             <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
                             <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
@@ -502,84 +560,58 @@
     <script>
         (function () {
             const sourceSelects = document.querySelectorAll('select.searchable-multiselect-source[multiple]');
-
             for (const select of sourceSelects) {
                 select.style.display = 'none';
-
                 const wrapper = document.createElement('div');
                 wrapper.className = 'searchable-multiselect';
-
                 const input = document.createElement('input');
                 input.type = 'search';
                 input.className = 'searchable-multiselect-input';
                 input.placeholder = select.dataset.placeholder || 'Search...';
-
                 const summary = document.createElement('div');
                 summary.className = 'searchable-multiselect-summary';
-
                 const optionsBox = document.createElement('div');
                 optionsBox.className = 'searchable-multiselect-options';
-
                 const emptyState = document.createElement('div');
                 emptyState.className = 'searchable-multiselect-empty';
                 emptyState.textContent = 'No matching employees.';
                 emptyState.style.display = 'none';
-
                 const optionRows = [];
-
                 for (const option of Array.from(select.options)) {
                     const row = document.createElement('label');
                     row.className = 'searchable-multiselect-option';
                     row.dataset.label = option.textContent.toLowerCase();
-
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.checked = option.selected;
                     checkbox.disabled = option.disabled;
-
                     const text = document.createElement('span');
                     text.textContent = option.textContent;
-
-                    checkbox.addEventListener('change', () => {
-                        option.selected = checkbox.checked;
-                        updateSummary();
-                    });
-
+                    checkbox.addEventListener('change', () => { option.selected = checkbox.checked; updateSummary(); });
                     row.appendChild(checkbox);
                     row.appendChild(text);
                     optionsBox.appendChild(row);
                     optionRows.push(row);
                 }
-
                 const updateSummary = () => {
-                    const selectedCount = Array.from(select.options).filter(option => option.selected).length;
-                    summary.textContent = selectedCount === 0
-                        ? 'No employees selected'
-                        : `${selectedCount} employee${selectedCount === 1 ? '' : 's'} selected`;
+                    const n = Array.from(select.options).filter(o => o.selected).length;
+                    summary.textContent = n === 0 ? 'No employees selected' : `${n} employee${n === 1 ? '' : 's'} selected`;
                 };
-
                 const applyFilter = () => {
-                    const query = input.value.trim().toLowerCase();
-                    let visibleCount = 0;
-
+                    const q = input.value.trim().toLowerCase();
+                    let vis = 0;
                     for (const row of optionRows) {
-                        const visible = !query || row.dataset.label.includes(query);
-                        row.style.display = visible ? 'flex' : 'none';
-                        if (visible) {
-                            visibleCount += 1;
-                        }
+                        const show = !q || row.dataset.label.includes(q);
+                        row.style.display = show ? 'flex' : 'none';
+                        if (show) vis++;
                     }
-
-                    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+                    emptyState.style.display = vis === 0 ? 'block' : 'none';
                 };
-
                 input.addEventListener('input', applyFilter);
-
                 wrapper.appendChild(input);
                 wrapper.appendChild(summary);
                 wrapper.appendChild(optionsBox);
                 wrapper.appendChild(emptyState);
-
                 select.insertAdjacentElement('afterend', wrapper);
                 updateSummary();
                 applyFilter();
@@ -603,9 +635,7 @@
             const templateTypeField = document.querySelector('select[name="pto_type"]')
                 || document.querySelector('select[name="ccv_type"]')
                 || document.querySelector('select[name="checklist_type"]');
-            if (!mapNode || !templateSelect || !fieldSelect || !templateTypeField) {
-                return;
-            }
+            if (!mapNode || !templateSelect || !fieldSelect || !templateTypeField) return;
 
             const fieldMap = JSON.parse(mapNode.textContent || '{}');
             const stepMap = stepMapNode ? JSON.parse(stepMapNode.textContent || '{}') : {};
@@ -613,19 +643,9 @@
             const templates = Object.keys(fieldMap);
             const shouldFilterChecklistFields = templateTypeField.name === 'checklist_type';
             const checklistAlwaysVisibleFields = new Set([
-                'site',
-                'checklist_type',
-                'checklist_title',
-                'equipment_id',
-                'inspection_area',
-                'date_completed',
-                'operational_status',
-                'findings',
-                'actions_required',
-                'verified_by',
-                'next_due_date',
-                'comments',
-                'checklist_file',
+                'site','checklist_type','checklist_title','equipment_id','inspection_area',
+                'date_completed','operational_status','findings','actions_required','verified_by',
+                'next_due_date','comments','checklist_file',
             ]);
 
             for (const key of templates) {
@@ -635,154 +655,51 @@
                 templateSelect.appendChild(option);
             }
 
-            const fillFieldOptions = (templateKey) => {
-                fieldSelect.innerHTML = '';
-                const fields = fieldMap[templateKey] || [];
-                for (const f of fields) {
-                    const option = document.createElement('option');
-                    option.value = f;
-                    option.textContent = f.replaceAll('_', ' ');
-                    fieldSelect.appendChild(option);
+            const fillFieldOptions = k => { fieldSelect.innerHTML = ''; for (const f of (fieldMap[k] || [])) { const o = document.createElement('option'); o.value = f; o.textContent = f.replaceAll('_',' '); fieldSelect.appendChild(o); } };
+            const fillStepOptions = k => { if (!stepList) return; stepList.innerHTML = ''; for (const s of (stepMap[k] || [])) { const li = document.createElement('li'); li.textContent = s; stepList.appendChild(li); } };
+            const fillMeta = k => { if (!metaBox) return; const m = metaMap[k] || {}; metaBox.textContent = [m.title,m.document_no&&`Doc No: ${m.document_no}`,m.revision_no&&`Rev: ${m.revision_no}`,m.effective_date&&`Eff: ${m.effective_date}`,m.status&&`Status: ${m.status}`,m.ref&&`Ref: ${m.ref}`,m.version&&`v${m.version}`].filter(Boolean).join(' | '); };
+
+            const updateStepFieldLabels = k => {
+                const steps = stepMap[k] || [];
+                for (let i = 1; i <= 47; i++) {
+                    const sk = String(i).padStart(2,'0');
+                    const question = steps[i-1];
+                    const cRow = document.querySelector(`[name="step_${sk}_compliant"]`)?.closest('p');
+                    const mRow = document.querySelector(`[name="step_${sk}_comments"]`)?.closest('p');
+                    if (cRow) cRow.style.display = question ? '' : 'none';
+                    if (mRow) mRow.style.display = question ? '' : 'none';
+                    if (!question) continue;
+                    if (cRow) { const l = cRow.querySelector('label'); if (l) l.textContent = `Step ${i}: ${question} (Yes/No)`; }
+                    if (mRow) { const l = mRow.querySelector('label'); if (l) l.textContent = `Step ${i} comments (optional)`; }
                 }
             };
 
-            const fillStepOptions = (templateKey) => {
-                if (!stepList) {
-                    return;
-                }
-                stepList.innerHTML = '';
-                const steps = stepMap[templateKey] || [];
-                for (const s of steps) {
-                    const li = document.createElement('li');
-                    li.textContent = s;
-                    stepList.appendChild(li);
-                }
-            };
-
-            const fillMeta = (templateKey) => {
-                if (!metaBox) {
-                    return;
-                }
-                const meta = metaMap[templateKey] || {};
-                const metaLines = [];
-                if (meta.title) {
-                    metaLines.push(meta.title);
-                }
-                if (meta.document_no) {
-                    metaLines.push(`Document No: ${meta.document_no}`);
-                }
-                if (meta.revision_no) {
-                    metaLines.push(`Revision No: ${meta.revision_no}`);
-                }
-                if (meta.effective_date) {
-                    metaLines.push(`Effective Date: ${meta.effective_date}`);
-                }
-                if (meta.status) {
-                    metaLines.push(`Status: ${meta.status}`);
-                }
-                if (meta.ref) {
-                    metaLines.push(`Ref: ${meta.ref}`);
-                }
-                if (meta.version) {
-                    metaLines.push(`Version: ${meta.version}`);
-                }
-                metaBox.textContent = metaLines.join(' | ');
-            };
-
-            const updateStepFieldLabels = (templateKey) => {
-                const steps = stepMap[templateKey] || [];
-
-                for (let index = 1; index <= 47; index += 1) {
-                    const stepKey = String(index).padStart(2, '0');
-                    const question = steps[index - 1];
-                    const compliantName = `step_${stepKey}_compliant`;
-                    const commentsName = `step_${stepKey}_comments`;
-
-                    const compliantInput = document.querySelector(`[name="${compliantName}"]`);
-                    const commentsInput = document.querySelector(`[name="${commentsName}"]`);
-
-                    const compliantRow = compliantInput ? compliantInput.closest('p') : null;
-                    const commentsRow = commentsInput ? commentsInput.closest('p') : null;
-
-                    const isActiveStep = Boolean(question);
-
-                    if (compliantRow) {
-                        compliantRow.style.display = isActiveStep ? '' : 'none';
-                    }
-                    if (commentsRow) {
-                        commentsRow.style.display = isActiveStep ? '' : 'none';
-                    }
-
-                    if (!isActiveStep) {
-                        continue;
-                    }
-
-                    if (compliantRow) {
-                        const compliantLabel = compliantRow.querySelector('label');
-                        if (compliantLabel) {
-                            compliantLabel.textContent = `Step ${index}: ${question} (Yes/No)`;
-                        }
-                    }
-
-                    if (commentsRow) {
-                        const commentsLabel = commentsRow.querySelector('label');
-                        if (commentsLabel) {
-                            commentsLabel.textContent = `Step ${index} comments (optional)`;
-                        }
-                    }
-                }
-            };
-
-            const updateChecklistFieldVisibility = (templateKey) => {
-                if (!shouldFilterChecklistFields) {
-                    return;
-                }
-
-                const allowedFields = new Set([
-                    ...checklistAlwaysVisibleFields,
-                    ...(fieldMap[templateKey] || []),
-                ]);
-
+            const updateChecklistFieldVisibility = k => {
+                if (!shouldFilterChecklistFields) return;
+                const allowed = new Set([...checklistAlwaysVisibleFields, ...(fieldMap[k] || [])]);
                 const form = templateTypeField.closest('form');
-                if (!form) {
-                    return;
-                }
-
-                const fieldRows = form.querySelectorAll('p');
-                for (const row of fieldRows) {
-                    const control = row.querySelector('input[name], select[name], textarea[name]');
-                    if (!control) {
-                        continue;
-                    }
-
-                    const fieldName = control.getAttribute('name') || '';
-                    if (fieldName.startsWith('step_')) {
-                        continue;
-                    }
-
-                    row.style.display = allowedFields.has(fieldName) ? '' : 'none';
+                if (!form) return;
+                for (const row of form.querySelectorAll('p')) {
+                    const ctrl = row.querySelector('input[name],select[name],textarea[name]');
+                    if (!ctrl) continue;
+                    const fn = ctrl.getAttribute('name') || '';
+                    if (fn.startsWith('step_')) continue;
+                    row.style.display = allowed.has(fn) ? '' : 'none';
                 }
             };
 
             const syncFromForm = () => {
-                const selected = templateTypeField.value || templates[0];
-                templateSelect.value = selected;
-                fillFieldOptions(selected);
-                fillStepOptions(selected);
-                fillMeta(selected);
-                updateStepFieldLabels(selected);
-                updateChecklistFieldVisibility(selected);
+                const sel = templateTypeField.value || templates[0];
+                templateSelect.value = sel;
+                fillFieldOptions(sel); fillStepOptions(sel); fillMeta(sel);
+                updateStepFieldLabels(sel); updateChecklistFieldVisibility(sel);
             };
 
             templateSelect.addEventListener('change', () => {
                 templateTypeField.value = templateSelect.value;
-                fillFieldOptions(templateSelect.value);
-                fillStepOptions(templateSelect.value);
-                fillMeta(templateSelect.value);
-                updateStepFieldLabels(templateSelect.value);
-                updateChecklistFieldVisibility(templateSelect.value);
+                fillFieldOptions(templateSelect.value); fillStepOptions(templateSelect.value); fillMeta(templateSelect.value);
+                updateStepFieldLabels(templateSelect.value); updateChecklistFieldVisibility(templateSelect.value);
             });
-
             templateTypeField.addEventListener('change', syncFromForm);
             syncFromForm();
         })();
@@ -796,40 +713,24 @@
         const monthField = document.querySelector('[name="report_month"]');
         const yearField = document.querySelector('[name="report_year"]');
         if (!siteField || !monthField || !yearField) return;
-
         const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn secondary';
-        btn.style.marginTop = '10px';
+        btn.type = 'button'; btn.className = 'btn secondary'; btn.style.marginTop = '10px';
         btn.textContent = 'Auto-fill from site data';
         yearField.closest('p').after(btn);
-
         btn.addEventListener('click', function () {
-            const siteId = siteField.value;
-            const month = monthField.value;
-            const year = yearField.value;
-            if (!siteId || !month || !year) {
-                alert('Please select a site, month, and year first.');
-                return;
-            }
-            btn.textContent = 'Loading…';
-            btn.disabled = true;
+            const siteId = siteField.value, month = monthField.value, year = yearField.value;
+            if (!siteId || !month || !year) { alert('Please select a site, month, and year first.'); return; }
+            btn.textContent = 'Loading…'; btn.disabled = true;
             fetch(`/app/monthly-health-reports/autofill/?site_id=${siteId}&month=${month}&year=${year}`)
                 .then(r => r.json())
                 .then(data => {
-                    const fields = ['incident_count','near_miss_count','observation_count','inspection_count','man_hours','training_hours'];
-                    for (const key of fields) {
+                    for (const key of ['incident_count','near_miss_count','observation_count','inspection_count','man_hours','training_hours']) {
                         const el = document.querySelector(`[name="${key}"]`);
                         if (el && data[key] !== undefined) el.value = data[key];
                     }
-                    btn.textContent = 'Auto-fill from site data';
-                    btn.disabled = false;
+                    btn.textContent = 'Auto-fill from site data'; btn.disabled = false;
                 })
-                .catch(() => {
-                    btn.textContent = 'Auto-fill from site data';
-                    btn.disabled = false;
-                    alert('Could not fetch data. Please fill in manually.');
-                });
+                .catch(() => { btn.textContent = 'Auto-fill from site data'; btn.disabled = false; alert('Could not fetch data. Please fill in manually.'); });
         });
     })();
     </script>

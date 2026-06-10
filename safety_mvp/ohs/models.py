@@ -152,6 +152,7 @@ class TenantPreset(models.Model):
     flra_target = models.PositiveIntegerField(default=500)
     employee_target = models.PositiveIntegerField(default=0)
     objective_target = models.PositiveIntegerField(default=0)
+    company_logo = models.ImageField(upload_to='tenant_logos/', blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

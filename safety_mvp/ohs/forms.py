@@ -173,6 +173,7 @@ class TenantPresetForm(forms.ModelForm):
             'flra_target',
             'employee_target',
             'objective_target',
+            'company_logo',
         )
 
 

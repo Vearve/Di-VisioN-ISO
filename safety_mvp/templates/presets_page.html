@@ -8,59 +8,237 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
-        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
-        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
-        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
-        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
-        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
-        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
-        .content { padding: 24px; }
-        .header { margin-bottom: 16px; }
-        .header h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; }
-        .muted { color: #6a7d86; }
-        .panel { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); max-width: 680px; }
-        .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7d86; margin-top: 16px; margin-bottom: 6px; }
-        label { display: block; font-size: 0.84rem; margin-top: 10px; color: #4f646d; font-weight: 600; }
-        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1dde1; margin-top: 4px; font-size: 0.9rem; box-sizing: border-box; }
-        input:focus { outline: none; border-color: #0f8f6f; box-shadow: 0 0 0 2px rgba(15, 143, 111, 0.1); }
-        .errorlist { color: #b91c1c; font-size: 0.82rem; margin-top: 4px; list-style: none; padding: 0; }
-        .errorlist li { margin-top: 4px; }
-        .btn { margin-top: 16px; background: #0f8f6f; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
-        .btn:hover { background: #0a6f54; }
-        .btn:disabled { background: #6a7d86; cursor: not-allowed; }
-        .flash { background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; max-width: 680px; }
-        .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+        :root {
+            --bg: #060d1c;
+            --surface: rgba(10, 22, 44, 0.88);
+            --text: #c8e8f8;
+            --text-bright: #eef8ff;
+            --muted: #5a8ca8;
+            --line: rgba(0, 180, 220, 0.11);
+            --accent: #00d4ff;
+            --accent2: #00ffb3;
+            --accent-grd: linear-gradient(135deg, #00d4ff 0%, #00ffb3 100%);
+            --danger: #ff4d6d;
+            --sidebar-text: #a8ccdb;
+            --glow-sm: 0 0 18px rgba(0,212,255,0.18);
+            --card-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(0,180,220,0.07) inset;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,100,200,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,200,150,0.06) 0%, transparent 55%);
+        }
+
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
+
+        /* ─── Sidebar ─────────────────────────────────────────────── */
+        .sidebar {
+            background: linear-gradient(180deg, #030810 0%, #050f20 100%);
+            color: var(--sidebar-text);
+            padding: 20px 14px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(0,180,220,0.07);
+        }
+        .sidebar::-webkit-scrollbar { width: 3px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(0,180,220,0.18); border-radius: 3px; }
+
+        .logo-area {
+            margin-bottom: 18px;
+            padding: 12px;
+            background: rgba(0,180,220,0.05);
+            border: 1px solid rgba(0,180,220,0.13);
+            border-radius: 12px;
+        }
+        .logo-area img.company-logo { max-width: 100%; max-height: 52px; object-fit: contain; display: block; margin-bottom: 8px; border-radius: 6px; }
+        .brand-mark { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+        .brand-diamond {
+            font-size: 1.3rem;
+            background: var(--accent-grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.93rem; color: #fff; }
+        .brand-sub { font-size: 0.64rem; color: var(--muted); letter-spacing: 0.06em; }
+        .tenant-info { font-size: 0.78rem; padding-top: 6px; border-top: 1px solid rgba(0,180,220,0.1); }
+        .tenant-info strong { display: block; color: #fff; font-size: 0.83rem; }
+        .tenant-info .muted-sm { color: var(--muted); font-size: 0.7rem; }
+
+        .menu-group { margin-top: 12px; }
+        .menu-group h4 { margin: 0 0 7px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,180,220,0.52); }
+        .menu-group a {
+            display: block; color: var(--sidebar-text); text-decoration: none;
+            font-weight: 600; font-size: 0.855rem; border-radius: 8px;
+            padding: 7px 10px; margin-bottom: 2px; border: 1px solid transparent; transition: all 0.16s;
+        }
+        .menu-group a:hover { background: rgba(0,200,255,0.08); color: var(--accent); border-color: rgba(0,200,255,0.22); }
+        .menu-group a.active { background: rgba(0,200,255,0.11); color: var(--accent); border-color: rgba(0,200,255,0.32); }
+
+        /* ─── Content ─────────────────────────────────────────────── */
+        .content { padding: 20px; }
+
+        .header { margin-bottom: 14px; }
+        .header h1 {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            background: var(--accent-grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .muted { color: var(--muted); }
+
+        /* ─── Panel ───────────────────────────────────────────────── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            padding: 18px;
+            box-shadow: var(--card-shadow);
+            max-width: 700px;
+            backdrop-filter: blur(18px);
+        }
+        .panel h3 { margin-top: 0; font-family: 'Space Grotesk', sans-serif; font-size: 0.98rem; color: var(--text-bright); }
+
+        .section-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(0,180,220,0.55);
+            margin-top: 18px;
+            margin-bottom: 6px;
+        }
+
+        label { display: block; font-size: 0.82rem; margin-top: 10px; color: var(--muted); font-weight: 600; }
+        input[type=number], input[type=text], input[type=file] {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,180,220,0.2);
+            margin-top: 4px;
+            font-size: 0.88rem;
+            background: rgba(6,13,28,0.85);
+            color: var(--text);
+            font-family: 'Manrope', sans-serif;
+            transition: border-color 0.16s, box-shadow 0.16s;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(0,212,255,0.12);
+        }
+        input[type=file] { padding: 7px; cursor: pointer; }
+
+        .errorlist { color: var(--danger); font-size: 0.78rem; margin-top: 4px; list-style: none; padding: 0; }
+        .errorlist li { margin-top: 3px; }
+
+        .btn {
+            margin-top: 16px;
+            background: var(--accent-grd);
+            color: #030810;
+            border: none;
+            border-radius: 9px;
+            padding: 10px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: 'Manrope', sans-serif;
+            transition: opacity 0.18s, box-shadow 0.18s;
+        }
+        .btn:hover { opacity: 0.86; box-shadow: var(--glow-sm); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .flash {
+            background: rgba(0,255,179,0.09);
+            border: 1px solid rgba(0,255,179,0.28);
+            color: #00ffb3;
+            border-radius: 9px;
+            padding: 9px 13px;
+            margin-bottom: 12px;
+            max-width: 700px;
+            font-size: 0.88rem;
+        }
+
+        .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+
+        /* ─── Logo section ────────────────────────────────────────── */
+        .logo-upload-section {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(0,180,220,0.1);
+        }
+        .logo-preview-box {
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px dashed rgba(0,180,220,0.22);
+            border-radius: 10px;
+            background: rgba(0,180,220,0.04);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .logo-preview-box img {
+            max-height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+        .logo-preview-box .no-logo {
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-style: italic;
+        }
+
+        /* Responsive */
         @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .target-grid { grid-template-columns: 1fr; } }
-        
         @media (max-width: 1024px) {
             .sidebar {
-                position: fixed;
-                left: 0;
-                top: 60px;
-                width: 270px;
+                position: fixed; left: 0; top: 60px; width: 270px;
                 height: calc(100vh - 60px);
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.28s cubic-bezier(.4,0,.2,1);
                 z-index: 1001;
             }
-            .sidebar.drawer-open {
-                transform: translateX(0);
-            }
-            .content { padding: 16px; }
+            .sidebar.drawer-open { transform: translateX(0); }
+            .content { padding: 14px; }
         }
-        
-        @media (max-width: 480px) {
-            .sidebar { width: 80vw; }
-            .content { padding: 12px; }
-        }
+        @media (max-width: 480px) { .target-grid { grid-template-columns: 1fr; } .content { padding: 10px; } }
     </style>
 </head>
 <body>
     {% include "_header.html" %}
     <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
-            <div class="brand">Safety Command Center</div>
+            <div class="logo-area">
+                {% if form.instance.company_logo %}
+                    <img src="{{ form.instance.company_logo.url }}" alt="{{ current_tenant.name }}" class="company-logo">
+                {% else %}
+                    <div class="brand-mark">
+                        <span class="brand-diamond">&#9670;</span>
+                        <div>
+                            <div class="brand-name">Di-VisioN</div>
+                            <div class="brand-sub">ISO Toolkit</div>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="tenant-info">
+                    {% if current_tenant %}
+                        <strong>{{ current_tenant.name }}</strong>
+                        <span class="muted-sm">{{ current_site.name|default:"All Sites" }} &middot; {{ current_role|default:"Unknown" }}</span>
+                    {% else %}
+                        <strong>No Tenant</strong>
+                    {% endif %}
+                </div>
+            </div>
 
             <div class="menu-group">
                 <h4>Main</h4>
@@ -74,7 +252,7 @@
             </div>
 
             <div class="menu-group">
-                <h4>People & Docs</h4>
+                <h4>People &amp; Docs</h4>
                 <a href="/app/contractors/">Contractors</a>
                 <a href="/app/certifications/">Certifications</a>
                 <a href="/app/training/">Training</a>
@@ -92,7 +270,7 @@
             </div>
 
             <div class="menu-group">
-                <h4>Live Sidebar Counts</h4>
+                <h4>Live Counts</h4>
                 <a href="/app/employees/">Employees ({{ sidebar_employee_count }})</a>
                 <a href="/app/training/">Training ({{ sidebar_training_count }})</a>
                 <a href="/app/objectives/">Objectives ({{ sidebar_objective_count }})</a>
@@ -105,7 +283,7 @@
             <div class="header">
                 <h1>{{ title }}</h1>
                 <p class="muted">{{ description }}</p>
-                <p class="muted">Tenant: {{ current_tenant.name|default:'-' }} | Site: {{ current_site.name|default:'All Sites' }} | Role: {{ current_role|default:'unknown' }}</p>
+                <p class="muted" style="font-size:0.8rem;">Tenant: {{ current_tenant.name|default:'-' }} &middot; Site: {{ current_site.name|default:'All Sites' }} &middot; Role: {{ current_role|default:'unknown' }}</p>
             </div>
 
             {% if messages %}
@@ -116,66 +294,56 @@
 
             <section class="panel">
                 <h3>Target Presets</h3>
-                <p class="muted">Set your operational targets once, then track progress from the dashboard.</p>
-                <form method="post">
+                <p class="muted" style="font-size:0.85rem;">Set operational targets once, then track progress from the dashboard.</p>
+
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="target-grid">
                         <div id="ccv">
                             <label for="id_ccv_target">CCV Target</label>
                             {{ form.ccv_target }}
-                            {% if form.ccv_target.errors %}
-                                <ul class="errorlist">
-                                    {% for error in form.ccv_target.errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
+                            {% if form.ccv_target.errors %}<ul class="errorlist">{% for e in form.ccv_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                         </div>
                         <div id="pto">
                             <label for="id_pto_target">PTO Target</label>
                             {{ form.pto_target }}
-                            {% if form.pto_target.errors %}
-                                <ul class="errorlist">
-                                    {% for error in form.pto_target.errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
+                            {% if form.pto_target.errors %}<ul class="errorlist">{% for e in form.pto_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                         </div>
                         <div id="flra">
                             <label for="id_flra_target">FLRA Target</label>
                             {{ form.flra_target }}
-                            {% if form.flra_target.errors %}
-                                <ul class="errorlist">
-                                    {% for error in form.flra_target.errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
+                            {% if form.flra_target.errors %}<ul class="errorlist">{% for e in form.flra_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                         </div>
                         <div id="employees">
                             <label for="id_employee_target">Employee Target</label>
                             {{ form.employee_target }}
-                            {% if form.employee_target.errors %}
-                                <ul class="errorlist">
-                                    {% for error in form.employee_target.errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
+                            {% if form.employee_target.errors %}<ul class="errorlist">{% for e in form.employee_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                         </div>
                         <div id="objectives">
                             <label for="id_objective_target">Objective Target</label>
                             {{ form.objective_target }}
-                            {% if form.objective_target.errors %}
-                                <ul class="errorlist">
-                                    {% for error in form.objective_target.errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
+                            {% if form.objective_target.errors %}<ul class="errorlist">{% for e in form.objective_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Company Logo Section -->
+                    <div class="logo-upload-section">
+                        <div class="section-title">Company Branding</div>
+                        <label for="id_company_logo">Company Logo</label>
+                        <p class="muted" style="font-size:0.78rem; margin:4px 0 0;">Upload your company logo to replace the Di-VisioN branding in the sidebar. Recommended: PNG or SVG, max 2 MB.</p>
+                        {{ form.company_logo }}
+                        {% if form.company_logo.errors %}<ul class="errorlist">{% for e in form.company_logo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+                        <div class="logo-preview-box">
+                            {% if form.instance.company_logo %}
+                                <img src="{{ form.instance.company_logo.url }}" alt="Current logo">
+                                <span style="color:var(--muted); font-size:0.8rem;">Current logo — upload a new file to replace it.</span>
+                            {% else %}
+                                <span class="no-logo">No logo uploaded — the default Di-VisioN branding is displayed.</span>
                             {% endif %}
                         </div>
                     </div>
+
                     <button class="btn" type="submit">Save Presets</button>
                 </form>
             </section>

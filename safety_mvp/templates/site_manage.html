@@ -3,52 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Workspace</title>
+    <title>{{ site.name }} — Site Workspace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: 'Manrope', sans-serif; background: #f7f6f2; color: #17313b; }
-        .layout { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; }
-        .sidebar { background: linear-gradient(180deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 24px 18px; overflow-y: auto; }
-        .brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
-        .menu-group h4 { margin: 10px 0 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8eb1bd; }
-        .menu-group a { display: block; color: #d3e5ec; text-decoration: none; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
-        .menu-group a.active, .menu-group a:hover { background: #204753; color: white; }
-        .content { padding: 24px; }
-        h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; }
-        .muted { color: #6a7d86; }
-        .module-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-        .module-card { background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 12px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
-        .module-card a { display: inline-block; margin-top: 8px; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; background: #0f8f6f; color: #fff; }
-        .count { color: #6a7d86; font-size: 0.82rem; margin-top: 6px; }
-        .activity { margin-top: 16px; background: #fff; border: 1px solid #dfe6e8; border-radius: 14px; padding: 12px; box-shadow: 0 6px 16px rgba(9, 42, 51, 0.08); }
-        table { width: 100%; border-collapse: collapse; min-width: 520px; }
-        th, td { border-bottom: 1px solid #dfe6e8; text-align: left; padding: 8px; font-size: 0.86rem; }
-        th { color: #6a7d86; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .context-box { border: 1px dashed #b7c8ce; border-radius: 10px; padding: 8px; margin-top: 8px; }
+        :root {
+            --bg: #060d1c;
+            --surface: rgba(10, 22, 44, 0.88);
+            --text: #c8e8f8;
+            --text-bright: #eef8ff;
+            --muted: #5a8ca8;
+            --line: rgba(0, 180, 220, 0.11);
+            --accent: #00d4ff;
+            --accent2: #00ffb3;
+            --accent-grd: linear-gradient(135deg, #00d4ff 0%, #00ffb3 100%);
+            --danger: #ff4d6d;
+            --sidebar-text: #a8ccdb;
+            --glow-sm: 0 0 18px rgba(0,212,255,0.18);
+            --card-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 0 rgba(0,180,220,0.07) inset;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,100,200,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,200,150,0.06) 0%, transparent 55%);
+        }
+
+        .layout { min-height: 100vh; display: grid; grid-template-columns: 270px 1fr; }
+
+        /* ─── Sidebar ─────────────────────────────────────────────── */
+        .sidebar {
+            background: linear-gradient(180deg, #030810 0%, #050f20 100%);
+            color: var(--sidebar-text);
+            padding: 20px 14px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(0,180,220,0.07);
+        }
+        .sidebar::-webkit-scrollbar { width: 3px; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(0,180,220,0.18); border-radius: 3px; }
+
+        .logo-area {
+            margin-bottom: 18px;
+            padding: 12px;
+            background: rgba(0,180,220,0.05);
+            border: 1px solid rgba(0,180,220,0.13);
+            border-radius: 12px;
+        }
+        .logo-area img.company-logo { max-width: 100%; max-height: 52px; object-fit: contain; display: block; margin-bottom: 8px; border-radius: 6px; }
+        .brand-mark { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+        .brand-diamond {
+            font-size: 1.3rem;
+            background: var(--accent-grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.93rem; color: #fff; }
+        .brand-sub { font-size: 0.64rem; color: var(--muted); letter-spacing: 0.06em; }
+        .tenant-info { font-size: 0.78rem; padding-top: 6px; border-top: 1px solid rgba(0,180,220,0.1); }
+        .tenant-info strong { display: block; color: #fff; font-size: 0.83rem; }
+        .tenant-info .muted-sm { color: var(--muted); font-size: 0.7rem; }
+
+        .context-box {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border: 1px solid rgba(0,180,220,0.14);
+            border-radius: 9px;
+            background: rgba(0,180,220,0.05);
+            font-size: 0.79rem;
+            line-height: 1.65;
+        }
+
+        .menu-group { margin-top: 12px; }
+        .menu-group h4 { margin: 0 0 7px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,180,220,0.52); }
+        .menu-group a {
+            display: block; color: var(--sidebar-text); text-decoration: none;
+            font-weight: 600; font-size: 0.85rem; border-radius: 8px;
+            padding: 7px 10px; margin-bottom: 2px; border: 1px solid transparent; transition: all 0.16s;
+        }
+        .menu-group a:hover { background: rgba(0,200,255,0.08); color: var(--accent); border-color: rgba(0,200,255,0.22); }
+        .menu-group a.active { background: rgba(0,200,255,0.11); color: var(--accent); border-color: rgba(0,200,255,0.32); }
+
+        /* ─── Content ─────────────────────────────────────────────── */
+        .content { padding: 20px; }
+
+        h1 { margin: 0; font-family: 'Space Grotesk', sans-serif; color: var(--text-bright); font-size: 1.35rem; }
+        .muted { color: var(--muted); }
+
+        /* ─── KPI Section ─────────────────────────────────────────── */
+        .kpi-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 22px 0 6px;
+        }
+        .kpi-section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            background: var(--accent-grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .kpi-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .kpi-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 13px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border: 1px solid;
+            transition: all 0.18s;
+        }
+        .kpi-btn.primary { background: rgba(0,212,255,0.12); border-color: rgba(0,212,255,0.35); color: var(--accent); }
+        .kpi-btn.primary:hover { background: rgba(0,212,255,0.2); box-shadow: var(--glow-sm); }
+        .kpi-btn.blue { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.35); color: #60a5fa; }
+        .kpi-btn.blue:hover { background: rgba(37,99,235,0.2); }
+        .kpi-btn.purple { background: rgba(147,51,234,0.12); border-color: rgba(147,51,234,0.35); color: #c084fc; }
+        .kpi-btn.purple:hover { background: rgba(147,51,234,0.2); }
+
+        /* ─── Module cards ────────────────────────────────────────── */
+        .module-grid {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 10px;
+        }
+        .module-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            padding: 13px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(18px);
+            transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+        }
+        .module-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0,200,255,0.26);
+            box-shadow: var(--glow-sm), var(--card-shadow);
+        }
+        .module-card strong { display: block; color: var(--text-bright); font-size: 0.9rem; }
+        .module-card .count { color: var(--muted); font-size: 0.78rem; margin-top: 5px; }
+        .module-card a {
+            display: inline-block;
+            margin-top: 9px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.8rem;
+            background: rgba(0,212,255,0.1);
+            color: var(--accent);
+            border: 1px solid rgba(0,212,255,0.28);
+            transition: all 0.16s;
+        }
+        .module-card a:hover { background: rgba(0,212,255,0.2); box-shadow: var(--glow-sm); }
+
+        /* ─── Activity table ──────────────────────────────────────── */
+        .activity {
+            margin-top: 18px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(18px);
+        }
+        .activity h3 { margin-top: 0; font-family: 'Space Grotesk', sans-serif; font-size: 0.92rem; color: var(--text-bright); }
+
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th, td { border-bottom: 1px solid rgba(0,180,220,0.07); text-align: left; padding: 8px; font-size: 0.83rem; color: var(--text); }
+        th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        tbody tr:hover td { background: rgba(0,180,220,0.04); }
+
+        /* Responsive */
         @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } }
-        
         @media (max-width: 1024px) {
             .sidebar {
-                position: fixed;
-                left: 0;
-                top: 60px;
-                width: 270px;
+                position: fixed; left: 0; top: 60px; width: 270px;
                 height: calc(100vh - 60px);
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.28s cubic-bezier(.4,0,.2,1);
                 z-index: 1001;
             }
-            .sidebar.drawer-open {
-                transform: translateX(0);
-            }
-            .content { padding: 16px; }
+            .sidebar.drawer-open { transform: translateX(0); }
+            .content { padding: 14px; }
         }
-        
+        @media (max-width: 768px) {
+            .content { padding: 10px; }
+            h1 { font-size: 1.1rem; }
+            .kpi-section-header { flex-direction: column; align-items: flex-start; }
+            .module-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+            .module-card { padding: 10px; border-radius: 10px; }
+            table { min-width: 380px; }
+            th, td { padding: 7px 5px; font-size: 0.76px; }
+        }
         @media (max-width: 480px) {
-            .sidebar { width: 80vw; }
-            .content { padding: 12px; }
+            .module-grid { grid-template-columns: 1fr; }
+            .kpi-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -56,12 +222,34 @@
     {% include "_header.html" %}
     <div class="layout" style="margin-top: 60px;">
         <aside class="sidebar">
-            <div class="brand">Safety Command Center</div>
+            <div class="logo-area">
+                {% if company_logo_url %}
+                    <img src="{{ company_logo_url }}" alt="{{ current_tenant.name }}" class="company-logo">
+                {% else %}
+                    <div class="brand-mark">
+                        <span class="brand-diamond">&#9670;</span>
+                        <div>
+                            <div class="brand-name">Di-VisioN</div>
+                            <div class="brand-sub">ISO Toolkit</div>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="tenant-info">
+                    {% if current_tenant %}
+                        <strong>{{ current_tenant.name }}</strong>
+                        <span class="muted-sm">{{ current_site.name|default:"All Sites" }}</span>
+                    {% else %}
+                        <strong>No Tenant</strong>
+                    {% endif %}
+                </div>
+            </div>
+
             <div class="menu-group">
                 <h4>Main</h4>
                 <a href="/">Home</a>
                 <a href="/app/sites/" class="active">Sites and Projects</a>
             </div>
+
             <div class="menu-group">
                 <h4>Current Context</h4>
                 <div class="context-box">
@@ -69,6 +257,7 @@
                     <div>Site: {{ current_site.name|default:'All Sites' }}</div>
                 </div>
             </div>
+
             <div class="menu-group">
                 <h4>Live Metrics</h4>
                 <div class="context-box">
@@ -83,51 +272,18 @@
 
         <main class="content">
             <h1>{{ site.name }}</h1>
-            <p class="muted">{{ site.location|default:'No location set' }} | {{ site.description|default:'No description set' }}</p>
+            <p class="muted" style="margin:4px 0 0; font-size:0.88rem;">{{ site.location|default:'No location set' }} &middot; {{ site.description|default:'No description set' }}</p>
 
-            <!-- KPI Dashboard Section -->
             {% if kpi_metrics %}
-            <div style="margin: 30px 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0; font-size: 1.25rem;">📊 KPI Performance</h2>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                        <a href="{% url 'site_presets_page' site_id=site.id %}" style="
-                        padding: 8px 16px;
-                        background: #0f8f6f;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        font-weight: 500;
-                        transition: background 0.2s;
-                    " onmouseover="this.style.background='#0a6f54'" onmouseout="this.style.background='#0f8f6f'">
-                        ⚙️ Manage Targets
-                    </a>
-                        <a href="{% url 'export_pdf' 'incidents' %}" style="
-                        padding: 8px 16px;
-                        background: #2563eb;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        font-weight: 500;
-                        transition: background 0.2s;
-                    " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
-                        📥 Export Site Incidents
-                    </a>
-                        <a href="{% url 'export_pdf' 'monthly_site_health_reports' %}" style="
-                        padding: 8px 16px;
-                        background: #9333ea;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 6px;
-                        font-size: 0.875rem;
-                        font-weight: 500;
-                        transition: background 0.2s;
-                    " onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#9333ea'">
-                        📄 Export Health Reports
-                    </a>
+            <div>
+                <div class="kpi-section-header">
+                    <span class="kpi-section-title">KPI Performance</span>
+                    <div class="kpi-actions">
+                        <a href="{% url 'site_presets_page' site_id=site.id %}" class="kpi-btn primary">Manage Targets</a>
+                        <a href="{% url 'export_pdf' 'incidents' %}" class="kpi-btn blue">Export Incidents</a>
+                        <a href="{% url 'export_pdf' 'monthly_site_health_reports' %}" class="kpi-btn purple">Export Health Reports</a>
                     </div>
+                </div>
                 {% include "site_kpi_cards.html" %}
             </div>
             {% endif %}
@@ -136,7 +292,7 @@
                 {% for label, href, count in module_links %}
                     <div class="module-card">
                         <strong>{{ label }}</strong>
-                        <div class="count">Records: {{ count }}</div>
+                        <div class="count">{{ count }} record{{ count|pluralize }}</div>
                         <a href="{{ href }}">Open Module</a>
                     </div>
                 {% endfor %}
@@ -144,28 +300,25 @@
 
             <section class="activity">
                 <h3>Recent Site Activity</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>When</th>
-                            <th>Action</th>
-                            <th>Module</th>
-                            <th>Record</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for event in recent_activity %}
-                            <tr>
-                                <td>{{ event.created_at }}</td>
-                                <td>{{ event.get_action_display }}</td>
-                                <td>{{ event.model_name }}</td>
-                                <td>{{ event.object_repr }}</td>
-                            </tr>
-                        {% empty %}
-                            <tr><td colspan="4" class="muted">No recent activity for this site yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>When</th><th>Action</th><th>Module</th><th>Record</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for event in recent_activity %}
+                                <tr>
+                                    <td>{{ event.created_at }}</td>
+                                    <td>{{ event.get_action_display }}</td>
+                                    <td>{{ event.model_name }}</td>
+                                    <td>{{ event.object_repr }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="muted">No recent activity for this site yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>

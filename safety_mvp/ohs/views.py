@@ -228,6 +228,18 @@ def _tenant_targets(current_tenant):
     }
 
 
+def _get_company_logo_url(tenant):
+    if not tenant:
+        return None
+    try:
+        preset = TenantPreset.objects.get(tenant=tenant)
+        if preset.company_logo:
+            return preset.company_logo.url
+    except TenantPreset.DoesNotExist:
+        pass
+    return None
+
+
 @login_required
 def home(request):
     try:
@@ -322,6 +334,7 @@ def _home_inner(request):
         'current_role': current_role,
         'today_checklist_done': today_checklist_count > 0,
         'today_checklist_count': today_checklist_count,
+        'company_logo_url': _get_company_logo_url(current_tenant),
         **sidebar_metrics,
         **permissions,
     })
@@ -460,7 +473,7 @@ def presets_page(request):
     preset, _ = TenantPreset.objects.get_or_create(tenant=current_tenant)
 
     if request.method == 'POST':
-        form = TenantPresetForm(request.POST, instance=preset)
+        form = TenantPresetForm(request.POST, request.FILES, instance=preset)
         if form.is_valid():
             instance = form.save(commit=False)
             instance.tenant = current_tenant
@@ -641,6 +654,7 @@ def site_manage_page(request, site_id):
         'current_role': current_role,
         'active_route': 'site_projects_page',
         'recent_activity': recent_activity,
+        'company_logo_url': _get_company_logo_url(current_tenant),
         **_sidebar_site_metrics(current_tenant, site),
     })
 
@@ -871,6 +885,7 @@ def _module_page(
         'back_url': back_url,
         'back_label': back_label,
         'export_name': route_name.replace('_page', ''),
+        'company_logo_url': _get_company_logo_url(current_tenant),
         **_sidebar_site_metrics(current_tenant, current_site),
         **(extra_context or {}),
     })
