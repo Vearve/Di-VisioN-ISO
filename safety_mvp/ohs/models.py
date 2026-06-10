@@ -1019,8 +1019,12 @@ class Objective(models.Model):
     objective_file = models.FileField(upload_to='objectives/files/', blank=True, null=True)  # <-- Add this
 
     def progress_percent(self):
-        if self.target > 0:
-            return min(100, int((self.current / self.target) * 100))
+        try:
+            target = int(self.target)
+        except (ValueError, TypeError):
+            return 0
+        if target > 0:
+            return min(100, int((self.current / target) * 100))
         return 0
 
     def __str__(self):

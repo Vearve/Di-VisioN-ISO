@@ -6,8 +6,12 @@ from django.http import HttpResponse
 from datetime import timedelta, datetime
 from django.utils.timezone import localdate
 import operator
+import logging
+import traceback
 from functools import reduce
 from django.db.models import Q, Sum
+
+logger = logging.getLogger(__name__)
 from .pdf_export import PDFGenerator
 from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
@@ -226,6 +230,17 @@ def _tenant_targets(current_tenant):
 
 @login_required
 def home(request):
+    try:
+        return _home_inner(request)
+    except Exception:
+        logger.exception("Home view crashed — tenant=%s site=%s user=%s",
+                         getattr(request, 'current_tenant', None),
+                         getattr(request, 'current_site', None),
+                         getattr(request.user, 'username', '?'))
+        raise
+
+
+def _home_inner(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
     today = localdate()
@@ -260,7 +275,7 @@ def home(request):
         'jsa_target': TARGETS['jsa'],
         'fra_target': TARGETS['fra'],
     }
-    
+
     today_checklists = scoped(SafetyChecklist).filter(checklist_type='Daily', date_completed=today)
     today_checklist_count = today_checklists.count()
 
