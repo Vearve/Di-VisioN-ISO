@@ -667,7 +667,7 @@ class PDFGenerator:
         story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}", self.styles['Normal']))
         story.append(Spacer(1, 0.3*inch))
 
-        table_data = [['Month', 'Year', 'Site / Project', 'Incidents', 'Near Misses', 'Inspections', 'Training Hours', 'Man-Hours']]
+        table_data = [['Month', 'Year', 'Site / Project', 'Incidents', 'Near Misses', 'Observations', 'Inspections', 'Training Hrs', 'Man-Hours']]
         for report in reports[:100]:
             month_name = dict(report._meta.get_field('report_month').choices).get(report.report_month, str(report.report_month))
             table_data.append([
@@ -676,12 +676,13 @@ class PDFGenerator:
                 report.site_project.name if report.site_project else 'Unknown',
                 str(report.incident_count),
                 str(report.near_miss_count),
+                str(report.observation_count),
                 str(report.inspection_count),
                 f"{float(report.training_hours):.1f}",
                 f"{float(report.man_hours):.1f}",
             ])
 
-        table = Table(table_data, colWidths=[0.9*inch, 0.8*inch, 1.5*inch, 0.9*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+        table = Table(table_data, colWidths=[0.8*inch, 0.6*inch, 1.3*inch, 0.8*inch, 0.9*inch, 0.9*inch, 0.9*inch, 0.85*inch, 0.85*inch])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f8f6f')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

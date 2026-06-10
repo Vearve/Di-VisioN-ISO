@@ -1,5 +1,6 @@
 {% if user.is_authenticated %}
 <style>
+    /* ── Dark mode overrides ───────────────────────────────────── */
     body.dark-mode {
         background: #0f172a !important;
         color: #e2e8f0 !important;
@@ -32,9 +33,7 @@
     body.dark-mode .activity h3,
     body.dark-mode .content > .header h1,
     body.dark-mode .content > .header h2,
-    body.dark-mode .content > .header h3 {
-        color: #f1f5f9 !important;
-    }
+    body.dark-mode .content > .header h3 { color: #f1f5f9 !important; }
 
     body.dark-mode th,
     body.dark-mode td,
@@ -45,49 +44,34 @@
     body.dark-mode .meta,
     body.dark-mode .count,
     body.dark-mode .kpis div,
-    body.dark-mode .header p {
-        color: #cbd5e1 !important;
-        border-color: #334155 !important;
-    }
+    body.dark-mode .header p { color: #cbd5e1 !important; border-color: #334155 !important; }
 
     body.dark-mode .action-link,
-    body.dark-mode .action-btn {
-        background: #0f172a !important;
-        color: #e2e8f0 !important;
-        border-color: #334155 !important;
-    }
+    body.dark-mode .action-btn { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
 
     body.dark-mode .action-link.manage,
     body.dark-mode .action-btn.manage,
     body.dark-mode .module-card a,
     body.dark-mode .cta,
-    body.dark-mode .btn {
-        color: #ffffff !important;
-    }
+    body.dark-mode .btn { color: #ffffff !important; }
 
     body.dark-mode input,
     body.dark-mode select,
-    body.dark-mode textarea {
-        background: #0f172a !important;
-        color: #e2e8f0 !important;
-        border-color: #334155 !important;
-    }
+    body.dark-mode textarea { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
 
     body.dark-mode .menu-group a.active,
-    body.dark-mode .menu-group a:hover {
-        background: #285266 !important;
-    }
+    body.dark-mode .menu-group a:hover { background: #285266 !important; }
 
-    body.dark-mode .user-menu {
-        background: #1e293b !important;
-        border-color: #334155 !important;
-    }
-
+    body.dark-mode .user-menu { background: #1e293b !important; border-color: #334155 !important; }
     body.dark-mode .user-menu a,
-    body.dark-mode .user-menu button {
-        color: #e2e8f0 !important;
+    body.dark-mode .user-menu button { color: #e2e8f0 !important; }
+
+    body.dark-mode .mobile-bottom-nav {
+        background: #0a1929 !important;
+        border-top-color: rgba(79, 179, 163, 0.2) !important;
     }
 
+    /* ── Sidebar overlay ───────────────────────────────────────── */
     .sidebar-overlay {
         display: none;
         position: fixed;
@@ -95,12 +79,99 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.55);
         z-index: 999;
+        backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.active { display: block; }
+
+    /* ── Mobile bottom navigation bar ─────────────────────────── */
+    .mobile-bottom-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        background: #0f2c35;
+        border-top: 1px solid rgba(79, 179, 163, 0.22);
+        z-index: 1100;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    .sidebar-overlay.active {
-        display: block;
+    .mobile-bottom-nav a,
+    .mobile-bottom-nav button.mob-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #8eb1bd;
+        text-decoration: none;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        gap: 3px;
+        background: none;
+        border: none;
+        border-top: 2px solid transparent;
+        cursor: pointer;
+        padding: 5px 2px 6px;
+        transition: color 0.15s, border-color 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+
+    .mobile-bottom-nav a.mob-active,
+    .mobile-bottom-nav button.mob-tab.mob-active {
+        color: #4fb3a3;
+        border-top-color: #4fb3a3;
+    }
+
+    .mobile-bottom-nav svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 1.8;
+        flex-shrink: 0;
+    }
+
+    /* ── Mobile global overrides ───────────────────────────────── */
+    @media (max-width: 768px) {
+        .mobile-bottom-nav {
+            display: flex;
+        }
+
+        body {
+            padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
+        /* Hide username text in header — keep avatar only */
+        .user-name-text { display: none !important; }
+
+        /* Always show hamburger on phones */
+        #sidebarToggleBtn { display: flex !important; }
+
+        /* Sidebar is a full drawer on phones */
+        .sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 60px !important;
+            width: 82vw !important;
+            max-width: 300px !important;
+            height: calc(100vh - 60px) !important;
+            transform: translateX(-100%) !important;
+            transition: transform 0.28s cubic-bezier(.4,0,.2,1) !important;
+            z-index: 1001 !important;
+            border-bottom: none !important;
+        }
+
+        .sidebar.drawer-open {
+            transform: translateX(0) !important;
+        }
+
+        /* Close sidebar links on tap */
+        .sidebar a { min-height: 44px; display: flex; align-items: center; }
     }
 
     @media (max-width: 1024px) {
@@ -111,127 +182,213 @@
         }
     }
 </style>
-<header class="header" style="position: sticky; top: 0; z-index: 1000; background: linear-gradient(90deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 0 24px; height: 60px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <button id="sidebarToggleBtn" type="button" title="Toggle sidebar" style="display: none; background: none; border: none; color: #d3e5ec; cursor: pointer; width: 40px; height: 40px; border-radius: 8px; transition: background 0.2s ease;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
+
+<header style="position: sticky; top: 0; z-index: 1000; background: linear-gradient(90deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 0 20px; height: 60px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <button id="sidebarToggleBtn" type="button" title="Menu" style="display:none; background:none; border:none; color:#d3e5ec; cursor:pointer; width:44px; height:44px; border-radius:8px; align-items:center; justify-content:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
         </button>
-        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: #4fb3a3;">&#9674;</div>
-        <div style="display: flex; flex-direction: column; font-size: 0.75rem; line-height: 1.2;">
-            <div style="font-weight: 700; font-size: 0.85rem;">Di-VisioN</div>
-            <div style="color: #8eb1bd; font-size: 0.7rem;">ISO Toolkit</div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:1.25rem; font-weight:700; color:#4fb3a3;">&#9674;</div>
+        <div style="display:flex; flex-direction:column; line-height:1.2;">
+            <div style="font-weight:700; font-size:0.85rem;">Di-VisioN</div>
+            <div style="color:#8eb1bd; font-size:0.68rem;">ISO Toolkit</div>
         </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button id="themeToggleBtn" type="button" title="Toggle dark mode" style="background: none; border: none; color: #d3e5ec; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; transition: background 0.2s ease, color 0.2s ease;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
+
+    <div style="display:flex; align-items:center; gap:6px;">
+        <!-- Theme toggle -->
+        <button id="themeToggleBtn" type="button" title="Toggle dark mode" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
             <svg id="themeSunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
             <svg id="themeMoonIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3c0.5 0 0.8 0.6 0.5 1A7 7 0 1 0 20 13.29c0.4-0.3 1 0 1 0.5z"></path>
+                <path d="M21 12.79A9 9 0 1 1 11.21 3c0.5 0 0.8 0.6 0.5 1A7 7 0 1 0 20 13.29c0.4-0.3 1 0 1 0.5z"/>
             </svg>
         </button>
-        <div style="position: relative;" class="user-dropdown">
-            <button class="user-menu-trigger" onclick="toggleUserMenu(event)" style="background: none; border: none; color: #d3e5ec; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; transition: background 0.2s ease;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: #4fb3a3; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; color: white;">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
-                <span style="font-size: 0.875rem;">{{ user.first_name|default:user.username }}</span>
+
+        <!-- User dropdown -->
+        <div style="position:relative;" class="user-dropdown">
+            <button class="user-menu-trigger" onclick="toggleUserMenu(event)" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; transition:background 0.2s;">
+                <div style="width:34px; height:34px; border-radius:50%; background:#4fb3a3; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; color:white; flex-shrink:0;">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+                <span class="user-name-text" style="font-size:0.875rem;">{{ user.first_name|default:user.username }}</span>
             </button>
-            <div class="user-menu" id="userMenu" style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid #dfe6e8; border-radius: 8px; min-width: 180px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); margin-top: 8px; display: none;">
-                <a href="/app/profile/" style="display: block; padding: 12px 16px; color: #17313b; text-decoration: none; font-size: 0.9rem; border-radius: 8px 8px 0 0;">Profile</a>
-                <a href="/app/settings/" style="display: block; padding: 12px 16px; color: #17313b; text-decoration: none; font-size: 0.9rem;">Settings</a>
+            <div class="user-menu" id="userMenu" style="position:absolute; top:100%; right:0; background:white; border:1px solid #dfe6e8; border-radius:10px; min-width:180px; box-shadow:0 8px 20px rgba(0,0,0,0.12); margin-top:8px; display:none; overflow:hidden;">
+                <form method="post" action="/logout/" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" style="width:100%; text-align:left; padding:14px 16px; border:none; background:none; color:#c4442f; cursor:pointer; font-size:0.9rem; font-family:inherit; font-weight:600;">Sign out</button>
+                </form>
             </div>
         </div>
-        <!-- Logout icon button -->
-        <form method="post" action="/logout/" style="margin: 0;">
+
+        <!-- Logout -->
+        <form method="post" action="/logout/" style="margin:0;">
             {% csrf_token %}
-            <button type="submit" title="Logout" style="background: none; border: none; color: #d3e5ec; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; transition: background 0.2s ease, color 0.2s ease;" onmouseover="this.style.background='rgba(196,68,47,0.25)';this.style.color='#ff7a6a';" onmouseout="this.style.background='none';this.style.color='#d3e5ec';">
+            <button type="submit" title="Logout" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; transition:background 0.2s, color 0.2s;" onmouseover="this.style.background='rgba(196,68,47,0.25)';this.style.color='#ff7a6a';" onmouseout="this.style.background='none';this.style.color='#d3e5ec';">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
             </button>
         </form>
     </div>
 </header>
+
+<!-- Mobile bottom navigation -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <a href="/" id="mnav-home">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Home</span>
+    </a>
+    <a href="/app/incidents/" id="mnav-incidents">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Incidents</span>
+    </a>
+    <a href="/app/checklists/" id="mnav-checklists">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>Checklists</span>
+    </a>
+    <a href="/app/jsa/" id="mnav-jsa">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span>JSA</span>
+    </a>
+    <button type="button" class="mob-tab" id="mnav-menu" onclick="toggleMobileDrawer()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <span>Menu</span>
+    </button>
+</nav>
+
 <script>
+    /* ── Theme ─────────────────────────────────────────────────── */
     function applyTheme(mode) {
         const isDark = mode === 'dark';
         document.body.classList.toggle('dark-mode', isDark);
-        const sunIcon = document.getElementById('themeSunIcon');
-        const moonIcon = document.getElementById('themeMoonIcon');
-        if (sunIcon && moonIcon) {
-            sunIcon.style.display = isDark ? 'block' : 'none';
-            moonIcon.style.display = isDark ? 'none' : 'block';
-        }
+        const sun = document.getElementById('themeSunIcon');
+        const moon = document.getElementById('themeMoonIcon');
+        if (sun) sun.style.display = isDark ? 'block' : 'none';
+        if (moon) moon.style.display = isDark ? 'none' : 'block';
     }
 
     function toggleTheme() {
-        const nextMode = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-        localStorage.setItem('dv-theme', nextMode);
-        applyTheme(nextMode);
+        const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('dv-theme', next);
+        applyTheme(next);
     }
 
-    const savedTheme = localStorage.getItem('dv-theme') || 'light';
-    applyTheme(savedTheme);
+    applyTheme(localStorage.getItem('dv-theme') || 'light');
 
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', toggleTheme);
-    }
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
 
-    function toggleUserMenu(event) {
-        event.preventDefault();
+    /* ── User menu ─────────────────────────────────────────────── */
+    function toggleUserMenu(e) {
+        e.preventDefault();
         const menu = document.getElementById('userMenu');
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
     }
 
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function(e) {
         const menu = document.getElementById('userMenu');
-        const trigger = event.target.closest('.user-menu-trigger');
-        if (!trigger && menu) {
+        if (!e.target.closest('.user-dropdown') && menu) {
             menu.style.display = 'none';
         }
     });
 
-    // Sidebar drawer toggle for mobile/tablet.
-    // Resolve sidebar element at interaction time because this header is rendered before page sidebars.
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const sidebarOverlay = document.querySelector('.sidebar-overlay') || (() => {
-        const overlay = document.createElement('div');
-        overlay.className = 'sidebar-overlay';
-        document.body.appendChild(overlay);
-        return overlay;
-    })();
+    /* ── Sidebar drawer (shared logic) ─────────────────────────── */
+    function getSidebar() { return document.querySelector('.sidebar'); }
 
+    function getOrCreateOverlay() {
+        let overlay = document.querySelector('.sidebar-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'sidebar-overlay';
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', closeMobileDrawer);
+        }
+        return overlay;
+    }
+
+    function openMobileDrawer() {
+        const sb = getSidebar();
+        const ov = getOrCreateOverlay();
+        if (sb) sb.classList.add('drawer-open');
+        ov.classList.add('active');
+        const menuBtn = document.getElementById('mnav-menu');
+        if (menuBtn) menuBtn.classList.add('mob-active');
+    }
+
+    function closeMobileDrawer() {
+        const sb = getSidebar();
+        const ov = document.querySelector('.sidebar-overlay');
+        if (sb) sb.classList.remove('drawer-open');
+        if (ov) ov.classList.remove('active');
+        const menuBtn = document.getElementById('mnav-menu');
+        if (menuBtn) menuBtn.classList.remove('mob-active');
+    }
+
+    function toggleMobileDrawer() {
+        const sb = getSidebar();
+        if (sb && sb.classList.contains('drawer-open')) {
+            closeMobileDrawer();
+        } else {
+            openMobileDrawer();
+        }
+    }
+
+    /* Hamburger button in header */
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const sidebarElement = document.querySelector('.sidebar');
-            if (!sidebarElement) return;
-            sidebarElement.classList.toggle('drawer-open');
-            sidebarOverlay.classList.toggle('active');
+            toggleMobileDrawer();
         });
     }
 
-    sidebarOverlay.addEventListener('click', () => {
-        const sidebarElement = document.querySelector('.sidebar');
-        if (sidebarElement) {
-            sidebarElement.classList.remove('drawer-open');
+    /* Close drawer when a sidebar link is tapped on mobile */
+    document.addEventListener('DOMContentLoaded', function() {
+        getOrCreateOverlay();
+        const sb = getSidebar();
+        if (sb) {
+            sb.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) closeMobileDrawer();
+                });
+            });
         }
-        sidebarOverlay.classList.remove('active');
     });
+
+    /* ── Bottom nav active state ───────────────────────────────── */
+    (function() {
+        const path = window.location.pathname;
+        const navItems = [
+            { id: 'mnav-home',       test: p => p === '/' || p === '/dashboard/' },
+            { id: 'mnav-incidents',  test: p => p.startsWith('/app/incidents') },
+            { id: 'mnav-checklists', test: p => p.startsWith('/app/checklists') },
+            { id: 'mnav-jsa',        test: p => p.startsWith('/app/jsa') },
+        ];
+        let matched = false;
+        for (const item of navItems) {
+            if (item.test(path)) {
+                const el = document.getElementById(item.id);
+                if (el) el.classList.add('mob-active');
+                matched = true;
+            }
+        }
+        /* Highlight Menu tab for all other module pages */
+        if (!matched && path !== '/') {
+            const el = document.getElementById('mnav-menu');
+            if (el) el.classList.add('mob-active');
+        }
+    })();
 </script>
 {% endif %}

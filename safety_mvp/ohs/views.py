@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from django.utils.timezone import localdate
 import operator
 from functools import reduce
-from django.db.models import Q
+from django.db.models import Q, Sum
 from .pdf_export import PDFGenerator
 from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
@@ -261,6 +261,9 @@ def home(request):
         'fra_target': TARGETS['fra'],
     }
     
+    today_checklists = scoped(SafetyChecklist).filter(checklist_type='Daily', date_completed=today)
+    today_checklist_count = today_checklists.count()
+
     objectives = scoped(Objective)
     training_matrix = scoped(TrainingMatrix)
     reminders = scoped(Reminder).filter(status='pending').order_by('remind_on', 'due_date')[:8]
@@ -302,6 +305,8 @@ def home(request):
         'available_tenants': available_tenants,
         'available_sites': available_sites,
         'current_role': current_role,
+        'today_checklist_done': today_checklist_count > 0,
+        'today_checklist_count': today_checklist_count,
         **sidebar_metrics,
         **permissions,
     })
@@ -1855,9 +1860,10 @@ def checklists_page(request):
             ('site', 'Site'),
             ('date_completed', 'Date Completed'),
             ('operational_status', 'Operational Status'),
+            ('compliance_score', 'Compliance %'),
         ],
         form_sections=[
-            ('Checklist Header', ['site', 'checklist_type', 'checklist_title', 'equipment_id', 'inspection_area', 'document_number', 'revision_number', 'effective_date', 'document_status', 'company_name', 'area_name', 'operator_name', 'supervisor_name', 'drill_rig_number', 'lighting_tower_number', 'serial_number']),
+            ('Checklist Header', ['site', 'checklist_type', 'checklist_title', 'date_completed', 'equipment_id', 'inspection_area', 'document_number', 'revision_number', 'effective_date', 'document_status', 'company_name', 'area_name', 'operator_name', 'supervisor_name', 'drill_rig_number', 'lighting_tower_number', 'serial_number']),
             ('Inspection Items', ['ppe_inspection', 'fire_safety_check', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'first_aid_kit_stocked', 'housekeeping_checked']),
             ('Checklist Inspection Points', ['step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments', 'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments', 'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments', 'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments', 'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments', 'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments', 'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments', 'step_15_compliant', 'step_15_comments', 'step_16_compliant', 'step_16_comments', 'step_17_compliant', 'step_17_comments', 'step_18_compliant', 'step_18_comments', 'step_19_compliant', 'step_19_comments', 'step_20_compliant', 'step_20_comments', 'step_21_compliant', 'step_21_comments', 'step_22_compliant', 'step_22_comments', 'step_23_compliant', 'step_23_comments', 'step_24_compliant', 'step_24_comments', 'step_25_compliant', 'step_25_comments', 'step_26_compliant', 'step_26_comments', 'step_27_compliant', 'step_27_comments', 'step_28_compliant', 'step_28_comments', 'step_29_compliant', 'step_29_comments', 'step_30_compliant', 'step_30_comments', 'step_31_compliant', 'step_31_comments', 'step_32_compliant', 'step_32_comments', 'step_33_compliant', 'step_33_comments', 'step_34_compliant', 'step_34_comments', 'step_35_compliant', 'step_35_comments', 'step_36_compliant', 'step_36_comments', 'step_37_compliant', 'step_37_comments', 'step_38_compliant', 'step_38_comments', 'step_39_compliant', 'step_39_comments', 'step_40_compliant', 'step_40_comments', 'step_41_compliant', 'step_41_comments', 'step_42_compliant', 'step_42_comments', 'step_43_compliant', 'step_43_comments', 'step_44_compliant', 'step_44_comments', 'step_45_compliant', 'step_45_comments', 'step_46_compliant', 'step_46_comments', 'step_47_compliant', 'step_47_comments']),
             ('Findings and Actions', ['operational_status', 'findings', 'actions_required', 'verified_by', 'next_due_date']),
@@ -1981,6 +1987,57 @@ def monthly_site_health_reports_page(request):
             ('Average Training Hours', lambda records: round((sum(float(getattr(r, 'training_hours', 0) or 0) for r in records) / len(records)) if records else 0, 2)),
         ],
     )
+
+
+@login_required
+def monthly_report_autofill(request):
+    """Return computed stats for a site+month+year as JSON so the form can pre-fill."""
+    import json
+    from calendar import monthrange
+
+    current_tenant = getattr(request, 'current_tenant', None)
+    site_id = request.GET.get('site_id')
+    month = request.GET.get('month')
+    year = request.GET.get('year')
+
+    if not (current_tenant and site_id and month and year):
+        return HttpResponse(json.dumps({}), content_type='application/json')
+
+    try:
+        month = int(month)
+        year = int(year)
+        site = SiteProject.objects.get(pk=site_id, tenant=current_tenant)
+    except (ValueError, SiteProject.DoesNotExist):
+        return HttpResponse(json.dumps({}), content_type='application/json')
+
+    _, last_day = monthrange(year, month)
+    from datetime import date as _date
+    date_from = _date(year, month, 1)
+    date_to = _date(year, month, last_day)
+
+    incident_count = Incident.objects.filter(tenant=current_tenant, site=site, date_of_incident__range=(date_from, date_to)).count()
+    near_miss_count = Incident.objects.filter(tenant=current_tenant, site=site, date_of_incident__range=(date_from, date_to), severity='near_miss').count()
+    observation_count = Observation.objects.filter(tenant=current_tenant, site=site, date_observed__range=(date_from, date_to)).count()
+    inspection_count = SafetyChecklist.objects.filter(tenant=current_tenant, site=site, date_completed__range=(date_from, date_to)).count()
+
+    attendance_records = AttendanceRecord.objects.filter(tenant=current_tenant, site_project=site, date__range=(date_from, date_to))
+    man_hours = round(sum(r.get_man_hours() for r in attendance_records), 2)
+
+    training_count = TrainingMatrix.objects.filter(
+        tenant=current_tenant, site=site,
+        training_date__range=(date_from, date_to)
+    ).count()
+    training_hours = float(training_count)
+
+    data = {
+        'incident_count': incident_count,
+        'near_miss_count': near_miss_count,
+        'observation_count': observation_count,
+        'inspection_count': inspection_count,
+        'man_hours': man_hours,
+        'training_hours': training_hours,
+    }
+    return HttpResponse(json.dumps(data), content_type='application/json')
 
 
 def contractors_page(request):

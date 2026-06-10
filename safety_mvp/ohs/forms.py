@@ -161,7 +161,7 @@ class CCVCriticalControlVerificationForm(TenantScopedModelForm):
 class SafetyChecklistForm(TenantScopedModelForm):
     class Meta:
         model = SafetyChecklist
-        exclude = ('tenant', 'date_completed', 'completed_by')
+        exclude = ('tenant', 'completed_by')
 
 
 class TenantPresetForm(forms.ModelForm):
@@ -200,6 +200,23 @@ class MonthlySiteHealthReportForm(TenantScopedModelForm):
     class Meta:
         model = MonthlySiteHealthReport
         exclude = ('tenant',)
+
+    def clean(self):
+        cleaned = super().clean()
+        site = cleaned.get('site_project')
+        month = cleaned.get('report_month')
+        year = cleaned.get('report_year')
+        if site and month and year:
+            qs = MonthlySiteHealthReport.objects.filter(
+                site_project=site, report_month=month, report_year=year
+            )
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    f'A report for {site} — {dict(MonthlySiteHealthReport._meta.get_field("report_month").choices).get(month, month)} {year} already exists.'
+                )
+        return cleaned
 
 
 class ContractorForm(TenantScopedModelForm):

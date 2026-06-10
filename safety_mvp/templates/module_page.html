@@ -79,11 +79,12 @@
         .searchable-multiselect-option:hover { background: #f1f7f8; }
         .searchable-multiselect-option input { width: auto; margin: 0; }
         .searchable-multiselect-empty { padding: 10px; color: #6a7d86; font-size: 0.8rem; }
+        /* Tablet */
         @media (max-width: 1120px) {
             .layout { grid-template-columns: 1fr; }
             .grid { grid-template-columns: 1fr; }
         }
-        
+
         @media (max-width: 1024px) {
             .layout { grid-template-columns: 1fr; }
             .sidebar {
@@ -93,21 +94,74 @@
                 width: 270px;
                 height: calc(100vh - 60px);
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.28s cubic-bezier(.4,0,.2,1);
                 z-index: 1001;
             }
-            .sidebar.drawer-open {
-                transform: translateX(0);
-            }
+            .sidebar.drawer-open { transform: translateX(0); }
             .grid { grid-template-columns: 1fr; }
             .content { padding: 16px; }
         }
-        
-        @media (max-width: 480px) {
-            .sidebar { width: 80vw; }
-            .content { padding: 12px; }
-            .header h1 { font-size: 1.1rem; }
-            table { min-width: 500px; }
+
+        /* Phone */
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+
+            .content { padding: 10px; }
+
+            .header h1 { font-size: 1.05rem; }
+            .header p { font-size: 0.82rem; }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .panel { border-radius: 12px; padding: 12px; }
+            .panel h3 { font-size: 0.95rem; margin-bottom: 8px; }
+
+            /* Form elements bigger for touch */
+            input, select, textarea {
+                padding: 11px 10px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+
+            label { font-size: 0.86rem; margin-top: 12px; }
+
+            /* Larger tap targets for buttons */
+            .btn {
+                padding: 13px 16px;
+                font-size: 0.95rem;
+                border-radius: 12px;
+                min-height: 48px;
+            }
+
+            /* Actions row wraps on small screens */
+            .actions { flex-wrap: wrap; gap: 6px; }
+
+            /* Table scroll */
+            .record-wrap { max-height: none; }
+            table { min-width: 480px; font-size: 0.8rem; }
+            th { font-size: 0.72rem; }
+            th, td { padding: 8px 6px; }
+
+            /* Pagination bigger taps */
+            .pagination a, .pagination span { padding: 9px 13px; font-size: 0.82rem; }
+
+            /* Search bar stacks */
+            .search-bar { flex-wrap: wrap; }
+            .search-bar input[type=search] { max-width: 100%; flex: 1 1 160px; }
+
+            /* Back link */
+            .back-link { font-size: 0.82rem; }
+
+            /* Summary cards scroll horizontally */
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .summary-card { padding: 10px; border-radius: 10px; }
+            .summary-card span { font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -732,6 +786,52 @@
             templateTypeField.addEventListener('change', syncFromForm);
             syncFromForm();
         })();
+    </script>
+    {% endif %}
+
+    {% if active_route == 'monthly_site_health_reports_page' %}
+    <script>
+    (function () {
+        const siteField = document.querySelector('[name="site_project"]');
+        const monthField = document.querySelector('[name="report_month"]');
+        const yearField = document.querySelector('[name="report_year"]');
+        if (!siteField || !monthField || !yearField) return;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn secondary';
+        btn.style.marginTop = '10px';
+        btn.textContent = 'Auto-fill from site data';
+        yearField.closest('p').after(btn);
+
+        btn.addEventListener('click', function () {
+            const siteId = siteField.value;
+            const month = monthField.value;
+            const year = yearField.value;
+            if (!siteId || !month || !year) {
+                alert('Please select a site, month, and year first.');
+                return;
+            }
+            btn.textContent = 'Loading…';
+            btn.disabled = true;
+            fetch(`/app/monthly-health-reports/autofill/?site_id=${siteId}&month=${month}&year=${year}`)
+                .then(r => r.json())
+                .then(data => {
+                    const fields = ['incident_count','near_miss_count','observation_count','inspection_count','man_hours','training_hours'];
+                    for (const key of fields) {
+                        const el = document.querySelector(`[name="${key}"]`);
+                        if (el && data[key] !== undefined) el.value = data[key];
+                    }
+                    btn.textContent = 'Auto-fill from site data';
+                    btn.disabled = false;
+                })
+                .catch(() => {
+                    btn.textContent = 'Auto-fill from site data';
+                    btn.disabled = false;
+                    alert('Could not fetch data. Please fill in manually.');
+                });
+        });
+    })();
     </script>
     {% endif %}
 </body>

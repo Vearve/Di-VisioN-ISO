@@ -189,6 +189,8 @@
             gap: 14px;
         }
 
+        .panels-3col { grid-template-columns: 1fr 1fr 1fr; }
+
         .panel {
             background: var(--surface);
             border: 1px solid var(--line);
@@ -281,27 +283,14 @@
             color: var(--muted);
         }
 
+        /* Tablet: sidebar becomes drawer */
         @media (max-width: 1080px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                position: static;
-                height: auto;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            }
-
-            .panels {
-                grid-template-columns: 1fr;
-            }
+            .layout { grid-template-columns: 1fr; }
+            .panels { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 1024px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
+            .layout { grid-template-columns: 1fr; }
             .sidebar {
                 position: fixed;
                 left: 0;
@@ -309,51 +298,59 @@
                 width: 270px;
                 height: calc(100vh - 60px);
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.28s cubic-bezier(.4,0,.2,1);
                 z-index: 1001;
                 border-bottom: none;
             }
+            .sidebar.drawer-open { transform: translateX(0); }
+            .content { padding: 16px; }
+        }
 
-            .sidebar.drawer-open {
-                transform: translateX(0);
-            }
+        /* Phone */
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
 
-            .panels {
-                grid-template-columns: 1fr;
+            .content { padding: 12px; }
+
+            .topbar {
+                padding: 12px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+                border-radius: 12px;
             }
+            .topbar h1 { font-size: 1.1rem; }
+            .topbar p { font-size: 0.82rem; }
 
             .metrics {
                 grid-template-columns: repeat(2, 1fr);
-            }
-
-            .content {
-                padding: 16px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .sidebar {
-                width: 80vw;
-            }
-
-            .metrics {
-                grid-template-columns: 1fr;
-            }
-
-            .topbar {
-                padding: 12px 12px;
-                flex-direction: column;
-                align-items: flex-start;
                 gap: 8px;
+                margin-top: 12px;
+            }
+            .metric { padding: 12px; border-radius: 12px; }
+            .metric .value { font-size: 1.4rem; }
+            .metric .label { font-size: 0.78rem; }
+
+            .panels {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-top: 12px;
             }
 
-            .topbar h1 {
-                font-size: 1.1rem;
-            }
+            .panel { border-radius: 12px; padding: 14px; }
+            .panel h3 { font-size: 0.95rem; }
 
-            table {
-                min-width: 500px;
+            .table-panel {
+                border-radius: 12px;
+                padding: 12px;
+                margin-top: 12px;
             }
+            .table-panel h3 { font-size: 0.95rem; }
+
+            table { min-width: 480px; font-size: 0.82rem; }
+            th, td { padding: 8px 6px; font-size: 0.8rem; }
+
+            .admin-link { font-size: 0.8rem; padding: 8px 10px; }
         }
     </style>
 </head>
@@ -460,7 +457,18 @@
                 </div>
             </section>
 
-            <section class="panels">
+            <section class="panels panels-3col">
+                <div class="panel">
+                    <h3>Today's Daily Checklist</h3>
+                    {% if today_checklist_done %}
+                        <p style="color:#0f8f6f; font-weight:700; font-size:1.1rem;">&#10003; Completed</p>
+                        <p class="muted">{{ today_checklist_count }} checklist{{ today_checklist_count|pluralize }} submitted today for the selected site.</p>
+                    {% else %}
+                        <p style="color:#b91c1c; font-weight:700; font-size:1.1rem;">&#10007; Not Submitted</p>
+                        <p class="muted">No daily checklist has been completed yet for today on the selected site.</p>
+                    {% endif %}
+                    <a class="admin-link" href="/app/checklists/">Go to Checklists &rarr;</a>
+                </div>
                 <div class="panel">
                     <h3>Quick Actions</h3>
                     <p class="muted">Create and manage recurrence tasks from one place.</p>

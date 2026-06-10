@@ -793,7 +793,7 @@ class SafetyChecklist(models.Model):
     lighting_tower_number = models.CharField(max_length=100, blank=True)
     serial_number = models.CharField(max_length=100, blank=True)
     completed_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    date_completed = models.DateField(auto_now_add=True)
+    date_completed = models.DateField(default=date.today)
     ppe_inspection = models.BooleanField(default=False)
     fire_safety_check = models.BooleanField(default=False)
     equipment_condition = models.BooleanField(default=False)
@@ -912,6 +912,18 @@ class SafetyChecklist(models.Model):
 
     class Meta:
         ordering = ('-date_completed',)
+
+    @property
+    def compliance_score(self):
+        """Percentage of answered steps that are compliant."""
+        answered = [
+            getattr(self, f'step_{i:02d}_compliant')
+            for i in range(1, 48)
+            if getattr(self, f'step_{i:02d}_compliant') is not None
+        ]
+        if not answered:
+            return None
+        return round(sum(1 for v in answered if v) / len(answered) * 100, 1)
 
     def __str__(self):
         return f'{self.checklist_type} - {self.site or "No site"}'
