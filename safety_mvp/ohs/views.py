@@ -342,6 +342,7 @@ def _home_inner(request):
 
 def schedule_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     current_role = user_role_for_tenant(request.user, current_tenant)
 
@@ -354,17 +355,20 @@ def schedule_center(request):
 
     return render(request, 'schedule_center.html', {
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
         'current_role': current_role,
         'can_manage_tenant': has_minimum_role(current_role, 'admin'),
         'can_manage_schedules': has_minimum_role(current_role, 'supervisor'),
         'schedule_items': schedule_items,
         'reminders': reminders,
+        'company_logo_url': _get_company_logo_url(current_tenant),
     })
 
 
 def capa_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     current_role = user_role_for_tenant(request.user, current_tenant)
 
@@ -375,16 +379,19 @@ def capa_center(request):
 
     return render(request, 'capa_center.html', {
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
         'current_role': current_role,
         'can_manage_tenant': has_minimum_role(current_role, 'admin'),
         'can_manage_capa': has_minimum_role(current_role, 'supervisor'),
         'actions': actions,
+        'company_logo_url': _get_company_logo_url(current_tenant),
     })
 
 
 def medical_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     current_role = user_role_for_tenant(request.user, current_tenant)
 
@@ -397,17 +404,20 @@ def medical_center(request):
 
     return render(request, 'medical_center.html', {
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
         'current_role': current_role,
         'can_manage_tenant': has_minimum_role(current_role, 'admin'),
         'can_manage_medical': has_minimum_role(current_role, 'site_manager'),
         'profiles': profiles,
         'assessments': assessments,
+        'company_logo_url': _get_company_logo_url(current_tenant),
     })
 
 
 def analytics_dashboard(request):
     current_tenant = getattr(request, 'current_tenant', None)
+    current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     current_role = user_role_for_tenant(request.user, current_tenant)
 
@@ -442,6 +452,7 @@ def analytics_dashboard(request):
 
     return render(request, 'analytics_dashboard.html', {
         'current_tenant': current_tenant,
+        'current_site': current_site,
         'available_tenants': available_tenants,
         'current_role': current_role,
         'can_manage_tenant': has_minimum_role(current_role, 'admin'),
@@ -451,6 +462,7 @@ def analytics_dashboard(request):
         'selected_site': site_id or '',
         'start_date': start_date or '',
         'end_date': end_date or '',
+        'company_logo_url': _get_company_logo_url(current_tenant),
     })
 
 
@@ -600,6 +612,7 @@ def site_projects_page(request):
         'current_role': current_role,
         'active_route': 'site_projects_page',
         'editing_attachments': edit_instance.attachments.all() if edit_instance else SiteProjectAttachment.objects.none(),
+        'company_logo_url': _get_company_logo_url(current_tenant),
         **_sidebar_site_metrics(current_tenant, current_site),
     })
 

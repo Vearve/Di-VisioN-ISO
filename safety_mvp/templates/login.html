@@ -9,157 +9,91 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background:
-            radial-gradient(circle at 5% 8%, #d8efe6 0%, rgba(216, 239, 230, 0) 32%),
-            radial-gradient(circle at 92% 18%, #ffe3c8 0%, rgba(255, 227, 200, 0) 35%),
-            #f7f6f2;
+        background: #060d1c;
+        background-image:
+            radial-gradient(ellipse 80% 60% at 15% 10%, rgba(0,100,200,0.18) 0%, transparent 55%),
+            radial-gradient(ellipse 60% 50% at 85% 80%, rgba(0,200,150,0.12) 0%, transparent 50%);
     }
-
     .login-card {
-        background: white;
-        border-radius: 16px;
+        background: rgba(10, 22, 44, 0.92);
+        border: 1px solid rgba(0, 180, 220, 0.18);
+        border-radius: 18px;
         padding: 48px 40px;
         width: 100%;
-        max-width: 400px;
-        box-shadow: 0 12px 48px rgba(9, 42, 51, 0.12);
+        max-width: 420px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 1px 0 rgba(0,180,220,0.1) inset;
     }
-
-    .login-brand {
-        text-align: center;
-        margin-bottom: 32px;
-    }
-
+    .login-brand { text-align: center; margin-bottom: 32px; }
     .login-brand-logo {
         font-family: 'Space Grotesk', sans-serif;
         font-size: 3rem;
         font-weight: 700;
-        color: #0f2c35;
-        margin-bottom: 12px;
+        background: linear-gradient(135deg, #00d4ff 0%, #00ffb3 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 14px;
     }
-
-    .login-brand-family {
-        font-size: 0.85rem;
-        color: #6a7d86;
-        margin-bottom: 4px;
-    }
-
-    .login-brand-name {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #0f2c35;
-        margin-bottom: 4px;
-    }
-
-    .login-brand-desc {
-        font-size: 0.8rem;
-        color: #8eb1bd;
-    }
-
-    .login-form {
-        margin-top: 24px;
-    }
-
-    .form-group {
-        margin-bottom: 18px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        color: #17313b;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
+    .login-brand-family { font-size: 0.82rem; color: #5a8ca8; margin-bottom: 4px; }
+    .login-brand-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: #eef8ff; margin-bottom: 4px; }
+    .login-brand-desc { font-size: 0.78rem; color: #5a8ca8; }
+    .login-form { margin-top: 24px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 7px; color: #a8ccdb; font-weight: 600; font-size: 0.85rem; }
     .form-group input {
         width: 100%;
         padding: 12px 14px;
-        border: 2px solid #dfe6e8;
-        border-radius: 8px;
+        border: 1px solid rgba(0, 180, 220, 0.22);
+        border-radius: 9px;
         font-family: inherit;
-        font-size: 1rem;
-        color: #17313b;
-        transition: border-color 0.2s ease;
+        font-size: 0.98rem;
+        color: #c8e8f8;
+        background: rgba(6, 13, 28, 0.85);
+        transition: border-color 0.18s, box-shadow 0.18s;
     }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: #0f8f6f;
-        background: #f7f6f2;
-    }
-
+    .form-group input:focus { outline: none; border-color: #00d4ff; box-shadow: 0 0 0 3px rgba(0,212,255,0.12); }
+    .form-group input::placeholder { color: #2a4a5a; }
     .login-button {
         width: 100%;
-        padding: 12px 16px;
-        background: linear-gradient(135deg, #0f8f6f 0%, #078062 100%);
-        color: white;
+        padding: 13px 16px;
+        background: linear-gradient(135deg, #00d4ff 0%, #00ffb3 100%);
+        color: #030810;
         border: none;
-        border-radius: 8px;
+        border-radius: 9px;
         font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
-        transition: opacity 0.2s ease, transform 0.1s ease;
+        font-family: 'Manrope', sans-serif;
+        transition: opacity 0.2s, box-shadow 0.2s, transform 0.1s;
         margin-top: 24px;
     }
-
-    .login-button:hover {
-        opacity: 0.9;
-    }
-
-    .login-button:active {
-        transform: scale(0.98);
-    }
-
+    .login-button:hover { opacity: 0.88; box-shadow: 0 0 28px rgba(0,212,255,0.28); }
+    .login-button:active { transform: scale(0.98); }
     .error-message {
-        background: rgba(196, 68, 47, 0.1);
-        color: #c4442f;
-        padding: 12px 14px;
-        border-radius: 8px;
+        background: rgba(255, 77, 109, 0.1);
+        color: #ff7c8e;
+        padding: 11px 14px;
+        border-radius: 9px;
         margin-bottom: 18px;
-        font-size: 0.9rem;
-        border-left: 4px solid #c4442f;
+        font-size: 0.88rem;
+        border-left: 3px solid #ff4d6d;
     }
-
-    .login-footer {
-        text-align: center;
-        margin-top: 24px;
-        font-size: 0.8rem;
-        color: #6a7d86;
-    }
-
-    .footer-divider {
-        border: none;
-        border-top: 1px solid #dfe6e8;
-        margin: 24px 0;
-    }
-
+    .login-footer { text-align: center; margin-top: 24px; font-size: 0.78rem; color: #3a5a6e; }
+    .footer-divider { border: none; border-top: 1px solid rgba(0,180,220,0.1); margin: 24px 0; }
     .demo-info {
-        background: #d9f6ee;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.14);
         padding: 14px;
-        border-radius: 8px;
+        border-radius: 9px;
         margin-top: 20px;
-        font-size: 0.8rem;
-        color: #0f2c35;
+        font-size: 0.79rem;
+        color: #a8ccdb;
     }
-
-    .demo-info strong {
-        display: block;
-        margin-bottom: 6px;
-    }
-
+    .demo-info strong { display: block; margin-bottom: 5px; color: #00d4ff; }
     @media (max-width: 480px) {
-        .login-card {
-            padding: 32px 24px;
-        }
-
-        .login-brand-logo {
-            font-size: 2.5rem;
-        }
-
-        .login-brand-name {
-            font-size: 1.1rem;
-        }
+        .login-card { padding: 32px 20px; }
+        .login-brand-logo { font-size: 2.5rem; }
     }
 </style>
 {% endblock %}
@@ -168,55 +102,46 @@
 <div class="login-container">
     <div class="login-card">
         <div class="login-brand">
-            <div class="login-brand-logo">◊</div>
+            <div class="login-brand-logo">&#9670;</div>
             <div class="login-brand-family">Di-VisioN Family</div>
             <div class="login-brand-name">ISO Toolkit</div>
             <div class="login-brand-desc">Safety &amp; Compliance Platform</div>
         </div>
 
         {% if form.non_field_errors %}
-        <div class="error-message">
-            {{ form.non_field_errors.0 }}
-        </div>
+        <div class="error-message">{{ form.non_field_errors.0 }}</div>
         {% endif %}
 
         <form method="post" class="login-form">
             {% csrf_token %}
-
             <div class="form-group">
                 <label for="id_username">Username or Email</label>
-                <input 
-                    type="text" 
-                    id="id_username" 
-                    name="username" 
-                    placeholder="Enter your username" 
-                    required 
+                <input
+                    type="text"
+                    id="id_username"
+                    name="username"
+                    placeholder="Enter your username"
+                    required
                     autofocus
                     value="{{ form.username.value|default:'' }}"
                 >
                 {% if form.username.errors %}
-                <div class="error-message" style="margin-top: 6px; margin-bottom: 0;">
-                    {{ form.username.errors.0 }}
-                </div>
+                <div class="error-message" style="margin-top:6px;margin-bottom:0;">{{ form.username.errors.0 }}</div>
                 {% endif %}
             </div>
-
             <div class="form-group">
                 <label for="id_password">Password</label>
-                <input 
-                    type="password" 
-                    id="id_password" 
-                    name="password" 
-                    placeholder="Enter your password" 
+                <input
+                    type="password"
+                    id="id_password"
+                    name="password"
+                    placeholder="Enter your password"
                     required
                 >
                 {% if form.password.errors %}
-                <div class="error-message" style="margin-top: 6px; margin-bottom: 0;">
-                    {{ form.password.errors.0 }}
-                </div>
+                <div class="error-message" style="margin-top:6px;margin-bottom:0;">{{ form.password.errors.0 }}</div>
                 {% endif %}
             </div>
-
             <button type="submit" class="login-button">Sign In</button>
         </form>
 
@@ -224,9 +149,7 @@
 
         <div class="login-footer">
             <p>Part of the Di-VisioN family of workplace safety solutions</p>
-            <p style="margin-top: 8px; font-size: 0.75rem;">
-                Other products: Di-Vision Drill Int (Drilling Operations)
-            </p>
+            <p style="margin-top:8px;font-size:0.72rem;">Other products: Di-Vision Drill Int (Drilling Operations)</p>
         </div>
 
         <div class="demo-info">
