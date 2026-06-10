@@ -169,10 +169,12 @@ if USE_S3:
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
 
     STORAGES = {
         'default': {
-            'BACKEND': 'storages.backends.s3.S3Storage',
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
         },
         'staticfiles': {
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
@@ -183,7 +185,7 @@ if USE_S3:
     if aws_custom_domain:
         MEDIA_URL = f'https://{aws_custom_domain}/'
     else:
-        MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
+        MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
 else:
     STORAGES = {
         'default': {
