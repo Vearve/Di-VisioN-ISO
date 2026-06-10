@@ -105,29 +105,29 @@ def _calculate_kpi_metrics(site, tenant, date_from=None, date_to=None):
     jsa_count = JSA.objects.filter(
         site=site,
         tenant=tenant,
-        date_of_activity__gte=date_from,
-        date_of_activity__lte=date_to
+        date__gte=date_from,
+        date__lte=date_to
     ).count()
-    
+
     fra_count = FRA.objects.filter(
         site=site,
         tenant=tenant,
-        date_of_assessment__gte=date_from,
-        date_of_assessment__lte=date_to
+        date_assessed__gte=date_from,
+        date_assessed__lte=date_to
     ).count()
-    
+
     flra_count = FLRA.objects.filter(
         site=site,
         tenant=tenant,
-        date_of_assessment__gte=date_from,
-        date_of_assessment__lte=date_to
+        date__gte=date_from,
+        date__lte=date_to
     ).count()
-    
+
     ccv_count = CCVCriticalControlVerification.objects.filter(
         site=site,
         tenant=tenant,
-        date_of_verification__gte=date_from,
-        date_of_verification__lte=date_to
+        assessment_datetime__date__gte=date_from,
+        assessment_datetime__date__lte=date_to
     ).count()
     
     # Calculate compliance metrics
