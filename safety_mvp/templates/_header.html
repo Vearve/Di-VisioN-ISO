@@ -1,4 +1,6 @@
 {% if user.is_authenticated %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
 <style>
     /* ── Dark mode overrides ───────────────────────────────────── */
     body.dark-mode {
@@ -181,6 +183,111 @@
             justify-content: center;
         }
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       RETRO-TECH THEME LAYER  ·  CRT · GRID · AMBER · NOTCH
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+        --amber: #ff9900;
+        --amber-dim: rgba(255, 153, 0, 0.10);
+        --amber-glow: 0 0 8px rgba(255,153,0,0.45), 0 0 18px rgba(255,153,0,0.15);
+        --mono: 'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    /* Dot-grid body background */
+    .retro-grid {
+        position: fixed;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(0,210,255,0.046) 1px, transparent 1px);
+        background-size: 24px 24px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* CRT scanline film */
+    .retro-crt {
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent 0px, transparent 3px,
+            rgba(0,0,0,0.03) 3px, rgba(0,0,0,0.03) 4px
+        );
+        pointer-events: none;
+        z-index: 9999;
+    }
+
+    /* Amber phosphor for stat numbers — dashboard metrics */
+    .metric .value {
+        background: none !important;
+        -webkit-background-clip: unset !important;
+        background-clip: unset !important;
+        -webkit-text-fill-color: var(--amber) !important;
+        color: var(--amber) !important;
+        text-shadow: var(--amber-glow) !important;
+        font-family: var(--mono) !important;
+        letter-spacing: 0.02em;
+    }
+
+    /* Amber on site-manage module card counts */
+    .module-card .count {
+        color: var(--amber) !important;
+        font-family: var(--mono) !important;
+        font-size: 0.8rem !important;
+        text-shadow: 0 0 8px rgba(255,153,0,0.28) !important;
+    }
+
+    /* Monospace for records count in module pages */
+    .records-meta {
+        font-family: var(--mono) !important;
+    }
+
+    /* Corner-notch on stat cards and module cards */
+    .metric,
+    .module-card {
+        clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%) !important;
+        border-radius: 0 !important;
+    }
+
+    /* KPI bar cards in site-manage */
+    .kpi-card {
+        clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%) !important;
+        border-radius: 0 !important;
+    }
+
+    /* LED indicator dots */
+    .led {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        vertical-align: middle;
+        margin-right: 5px;
+        flex-shrink: 0;
+        animation: led-pulse 2.6s ease-in-out infinite;
+    }
+    .led-green { background: #00ffb3; box-shadow: 0 0 5px #00ffb3, 0 0 10px rgba(0,255,179,0.28); }
+    .led-amber { background: var(--amber); box-shadow: 0 0 5px var(--amber), 0 0 10px rgba(255,153,0,0.28); }
+    .led-red   { background: #ff4d6d; box-shadow: 0 0 5px #ff4d6d, 0 0 10px rgba(255,77,109,0.28); }
+    .led-blue  { background: #00d4ff; box-shadow: 0 0 5px #00d4ff, 0 0 10px rgba(0,212,255,0.28); }
+
+    @keyframes led-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.45; }
+    }
+
+    /* Retro bracket page titles — applied to h1 inside .retro-title wrappers */
+    .retro-page-title {
+        font-family: var(--mono) !important;
+        font-size: 0.68rem !important;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--amber) !important;
+        opacity: 0.75;
+        margin-bottom: 2px;
+    }
+    .retro-page-title::before { content: '[ '; }
+    .retro-page-title::after  { content: ' ]'; }
 </style>
 
 <header style="position: sticky; top: 0; z-index: 1000; background: linear-gradient(90deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 0 20px; height: 60px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
@@ -233,6 +340,10 @@
         </form>
     </div>
 </header>
+
+<!-- Retro-tech overlay layers -->
+<div class="retro-grid" aria-hidden="true"></div>
+<div class="retro-crt"  aria-hidden="true"></div>
 
 <!-- Mobile bottom navigation -->
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
