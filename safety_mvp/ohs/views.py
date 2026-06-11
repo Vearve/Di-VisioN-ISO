@@ -918,12 +918,16 @@ def export_to_pdf(request, module_name):
         messages.error(request, 'Please select a workspace first.')
         return redirect('home')
 
-    # Get data based on module
+    record_id = request.GET.get('record_id')
+
     def scope_qs(qs):
-        return _scope_queryset(qs, current_tenant, current_site)
+        qs = _scope_queryset(qs, current_tenant, current_site)
+        if record_id:
+            qs = qs.filter(id=record_id)
+        return qs
 
     pdf_gen = PDFGenerator(
-        title=f"{module_name.title()} Report",
+        title=f"{module_name.replace('_', ' ').title()} Report",
         company_name=current_tenant.name
     )
     site_name = current_site.name if current_site else "All Sites"
@@ -998,6 +1002,41 @@ def export_to_pdf(request, module_name):
             data = scope_qs(MonthlySiteHealthReport.objects.all()).order_by('-report_year', '-report_month')
             buffer = pdf_gen.generate_site_health_report(data, site_name)
             filename = f"monthly_site_health_reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'checklists':
+            data = scope_qs(SafetyChecklist.objects.all()).order_by('-date_completed')
+            buffer = pdf_gen.generate_checklists_report(data, site_name)
+            filename = f"checklists_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'capa':
+            data = scope_qs(CAPAAction.objects.all()).order_by('-due_date')
+            buffer = pdf_gen.generate_capa_report(data, site_name)
+            filename = f"capa_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'contractors':
+            data = scope_qs(Contractor.objects.all()).order_by('name')
+            buffer = pdf_gen.generate_contractors_report(data, site_name)
+            filename = f"contractors_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'ccv':
+            data = scope_qs(CCVCriticalControlVerification.objects.all()).order_by('-assessment_datetime')
+            buffer = pdf_gen.generate_ccv_report(data, site_name)
+            filename = f"ccv_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'pto_chemicals':
+            data = scope_qs(PTOChemicalHazardousSubstance.objects.all()).order_by('-id')
+            buffer = pdf_gen.generate_pto_chemicals_report(data, site_name)
+            filename = f"pto_chemicals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'medical_profiles':
+            data = scope_qs(MedicalProfile.objects.all()).order_by('employee__name')
+            buffer = pdf_gen.generate_medical_profiles_report(data, site_name)
+            filename = f"medical_profiles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'medical_assessments':
+            data = scope_qs(MedicalAssessment.objects.all()).order_by('-assessment_date')
+            buffer = pdf_gen.generate_medical_assessments_report(data, site_name)
+            filename = f"medical_assessments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
         else:
             messages.error(request, f'Export not available for {module_name}')

@@ -706,3 +706,232 @@ class PDFGenerator:
         doc.build(story)
         buffer.seek(0)
         return buffer
+
+    # shared helpers
+    def _base_doc(self):
+        from io import BytesIO
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate
+        from reportlab.lib.units import inch
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter,
+                                rightMargin=0.75*inch, leftMargin=0.75*inch,
+                                topMargin=0.75*inch, bottomMargin=0.75*inch)
+        return buffer, doc
+
+    def _header(self, story, site_name=""):
+        from reportlab.platypus import Paragraph, Spacer
+        from reportlab.lib.units import inch
+        from datetime import datetime
+        story.append(Paragraph(self.title, self.styles["CustomTitle"]))
+        if self.company_name:
+            story.append(Paragraph(self.company_name, self.styles["Normal"]))
+        if site_name:
+            story.append(Paragraph(f"Site: {site_name}", self.styles["Normal"]))
+        story.append(Paragraph(f"Generated: {datetime.now().strftime("%B %d, %Y at %H:%M")}", self.styles["Normal"]))
+        story.append(Spacer(1, 0.25*inch))
+
+    def _footer(self, story):
+        from reportlab.platypus import Paragraph, Spacer
+        from reportlab.lib.units import inch
+        from datetime import datetime
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph(
+            f"<b>Generated:</b> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | Di-VisioN ISO Toolkit",
+            self.styles["CustomNormal"]
+        ))
+
+    def _std_table(self, story, data, col_widths, header_color="#0a5c88"):
+        from reportlab.platypus import Table
+        from reportlab.platypus.tables import TableStyle
+        from reportlab.lib import colors
+        t = Table(data, colWidths=col_widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_color)),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+        story.append(t)
+
+    def generate_checklists_report(self, checklists, site_name=""):
+        from reportlab.platypus import Paragraph, Spacer, Table
+        from reportlab.platypus.tables import TableStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        story.append(Paragraph(f"Total records: {checklists.count()}", self.styles["CustomNormal"]))
+        story.append(Spacer(1, 0.15*inch))
+        for cl in checklists[:50]:
+            story.append(Paragraph(
+                f"{cl.get_checklist_type_display()} - {cl.date_completed} | Site: {cl.site or 'N/A'} | Equipment: {cl.equipment_id or 'N/A'}",
+                self.styles["CustomSubHeading"]
+            ))
+            info_data = [
+                ["Operator", cl.operator_name or "-", "Supervisor", cl.supervisor_name or "-"],
+                ["Inspection Area", cl.inspection_area or "-", "Operational Status",
+                 cl.get_operational_status_display() if hasattr(cl, "get_operational_status_display") else (cl.operational_status or "-")],
+            ]
+            info_t = Table(info_data, colWidths=[1.3*inch, 2*inch, 1.3*inch, 2*inch])
+            info_t.setStyle(TableStyle([
+                ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
+                ("FONTNAME", (2,0), (2,-1), "Helvetica-Bold"),
+                ("FONTSIZE", (0,0), (-1,-1), 8),
+                ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+                ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#eef6fb")),
+                ("BACKGROUND", (2,0), (2,-1), colors.HexColor("#eef6fb")),
+                ("TOPPADDING", (0,0), (-1,-1), 4),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ]))
+            story.append(info_t)
+            story.append(Spacer(1, 0.07*inch))
+            basic = [
+                ("PPE Inspection", cl.ppe_inspection),
+                ("Fire Safety Check", cl.fire_safety_check),
+                ("Equipment Condition", cl.equipment_condition),
+                ("Emergency Exits Clear", cl.emergency_exits_clear),
+                ("Safety Signage Visible", cl.safety_signage_visible),
+                ("First Aid Kit Stocked", cl.first_aid_kit_stocked),
+                ("Housekeeping Checked", cl.housekeeping_checked),
+            ]
+            basic_data = [["Inspection Item", "Result"]]
+            for label, val in basic:
+                basic_data.append([label, "Pass" if val else "Fail"])
+            self._std_table(story, basic_data, [4.5*inch, 1*inch])
+            story.append(Spacer(1, 0.07*inch))
+            step_rows = [["Step", "Result", "Comments"]]
+            for i in range(1, 48):
+                sk = f"{i:02d}"
+                compliant = getattr(cl, f"step_{sk}_compliant", None)
+                if compliant is None:
+                    continue
+                comment = getattr(cl, f"step_{sk}_comments", "") or ""
+                step_rows.append([f"Step {i}", "Pass" if compliant else "Fail",
+                                  comment[:60] + ("..." if len(comment) > 60 else "")])
+            if len(step_rows) > 1:
+                self._std_table(story, step_rows, [0.7*inch, 0.9*inch, 5*inch])
+                story.append(Spacer(1, 0.07*inch))
+            if cl.findings or cl.actions_required:
+                story.append(Paragraph(f"Findings: {cl.findings or '-'}", self.styles["CustomNormal"]))
+                story.append(Paragraph(f"Actions Required: {cl.actions_required or '-'}", self.styles["CustomNormal"]))
+            story.append(Spacer(1, 0.2*inch))
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_capa_report(self, actions, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["Title", "Priority", "Status", "Due Date", "Site", "Root Cause"]]
+        for a in actions[:100]:
+            data.append([a.title[:35], a.get_priority_display(), a.get_status_display(),
+                         str(a.due_date or "-"), str(a.site or "-"), (a.root_cause or "-")[:40]])
+        self._std_table(story, data, [1.8*inch, 0.8*inch, 0.9*inch, 0.9*inch, 1*inch, 1.3*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_contractors_report(self, contractors, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["Name", "Company", "Site", "Onboarded", "Onboarding Date"]]
+        for c in contractors[:100]:
+            data.append([c.name, c.company, str(c.site or "-"),
+                         "Yes" if c.onboarded else "No", str(c.onboarding_date or "-")])
+        self._std_table(story, data, [1.5*inch, 1.5*inch, 1.2*inch, 0.9*inch, 1.2*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_ccv_report(self, ccvs, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["Type", "Assessor", "Date/Time", "Location", "Dept", "Steps OK"]]
+        for c in ccvs[:100]:
+            answered = [getattr(c, f"step_{i:02d}_compliant") for i in range(1, 30)
+                        if getattr(c, f"step_{i:02d}_compliant", None) is not None]
+            ok = sum(1 for v in answered if v)
+            total = len(answered)
+            data.append([
+                c.get_ccv_type_display(), c.assessor_name or "-",
+                str(c.assessment_datetime)[:16] if c.assessment_datetime else "-",
+                c.location or "-", c.department or "-",
+                f"{ok}/{total}" if total else "-",
+            ])
+        self._std_table(story, data, [1.5*inch, 1.2*inch, 1.1*inch, 1.1*inch, 1*inch, 0.7*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_pto_chemicals_report(self, ptos, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["PTO Type", "Site", "Date", "Shift", "Location"]]
+        for p in ptos[:100]:
+            data.append([
+                p.get_pto_type_display() if hasattr(p, "get_pto_type_display") else getattr(p, "pto_type", ""),
+                str(p.site or "-"),
+                str(getattr(p, "date", None) or str(getattr(p, "created_at", ""))[:10]),
+                str(getattr(p, "shift_mining", None) or getattr(p, "shift_other", None) or "-"),
+                str(getattr(p, "location", None) or "-"),
+            ])
+        self._std_table(story, data, [2.2*inch, 1.2*inch, 1*inch, 1*inch, 1.3*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_medical_profiles_report(self, profiles, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["Employee", "Fitness Status", "Surveillance", "Next Medical Due", "Restrictions"]]
+        for p in profiles[:100]:
+            data.append([p.employee.name, p.get_fitness_status_display(),
+                         "Yes" if p.surveillance_required else "No",
+                         str(p.next_medical_due or "-"), (p.restrictions or "-")[:40]])
+        self._std_table(story, data, [1.5*inch, 1.3*inch, 0.9*inch, 1.1*inch, 1.9*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def generate_medical_assessments_report(self, assessments, site_name=""):
+        from reportlab.lib.units import inch
+        buffer, doc = self._base_doc()
+        story = []
+        self._header(story, site_name=site_name)
+        data = [["Employee", "Exam Type", "Assessment Date", "Valid Until", "Outcome", "Provider"]]
+        for a in assessments[:100]:
+            data.append([
+                a.profile.employee.name, a.exam_type[:25],
+                str(a.assessment_date), str(a.valid_until or "-"),
+                a.get_outcome_display(), str(getattr(a, "provider", None) or "-")[:20],
+            ])
+        self._std_table(story, data, [1.3*inch, 1.4*inch, 1.1*inch, 1*inch, 1.1*inch, 0.8*inch])
+        self._footer(story)
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
