@@ -282,19 +282,9 @@
         .miss-badge { color: var(--danger); font-weight: 700; font-size: 1rem; text-shadow: 0 0 10px rgba(255,77,109,0.38); }
 
         /* ─── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 1080px) {
+        @media (max-width: 1024px) {
             .layout { grid-template-columns: 1fr; }
             .panels { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 1024px) {
-            .sidebar {
-                position: fixed; left: 0; top: 60px; width: 270px;
-                height: calc(100vh - 60px);
-                transform: translateX(-100%);
-                transition: transform 0.28s cubic-bezier(.4,0,.2,1);
-                z-index: 1001;
-            }
-            .sidebar.drawer-open { transform: translateX(0); }
             .content { padding: 14px; }
         }
         @media (max-width: 768px) {
