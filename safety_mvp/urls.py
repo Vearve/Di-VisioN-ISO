@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LogoutView
 from django.urls import path, re_path
 from django.conf import settings
 from django.conf.urls.static import static
@@ -24,7 +24,7 @@ from safety_mvp.ohs import views  # Use your actual app name
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', LoginView.as_view(template_name='login.html'), name='login'),
+    path('login/', views.TenantAwareLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
     path('', views.home, name='home'),
     path('dashboard/', views.home, name='dashboard'),

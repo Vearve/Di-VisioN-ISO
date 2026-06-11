@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.views import LoginView as _DjangoLoginView
 from django.shortcuts import redirect, render
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
@@ -56,6 +57,24 @@ TARGETS = {
     # SDS and SOP have no count/target
     # The rest don't need a target
 }
+
+
+class TenantAwareLoginView(_DjangoLoginView):
+    """LoginView that scrubs stale tenant/site session data after login.
+
+    Django's session.cycle_key() (called inside auth.login) creates a new
+    session ID but *preserves session data*, so current_tenant_id left over
+    from a previous user's session would survive into the new one. Popping
+    the keys here ensures every user starts at their own default tenant.
+    """
+    template_name = 'login.html'
+
+    def form_valid(self, form):
+        from .tenant_context import SESSION_TENANT_KEY, SESSION_SITE_KEY
+        response = super().form_valid(form)  # calls auth.login() → cycle_key()
+        self.request.session.pop(SESSION_TENANT_KEY, None)
+        self.request.session.pop(SESSION_SITE_KEY, None)
+        return response
 
 
 def safe_root(request):

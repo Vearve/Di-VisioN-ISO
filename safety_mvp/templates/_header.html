@@ -347,6 +347,26 @@
     </div>
 
     <div style="display:flex; align-items:center; gap:6px;">
+        <!-- Tenant switcher — only shown when user belongs to more than one tenant -->
+        {% if available_tenants|length > 1 %}
+        <div style="position:relative;" class="tenant-switcher-dropdown">
+            <button onclick="toggleTenantMenu(event)" title="Switch company" style="background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.28); color:#00d4ff; cursor:pointer; display:flex; align-items:center; gap:6px; padding:5px 11px; border-radius:8px; font-size:0.78rem; font-weight:700; font-family:'Manrope',sans-serif; transition:background 0.18s;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span style="max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ current_tenant.name|default:"Select Company" }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="tenantSwitcherMenu" style="display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:200px; background:#0a1929; border:1px solid rgba(0,212,255,0.22); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.5); overflow:hidden; z-index:2000;">
+                <div style="padding:7px 12px 5px; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.12em; color:rgba(0,212,255,0.5); font-weight:700;">Switch Company</div>
+                {% for t in available_tenants %}
+                <a href="?tenant={{ t.id }}" style="display:flex; align-items:center; gap:8px; padding:9px 14px; text-decoration:none; font-size:0.84rem; font-weight:600; color:{% if t.id == current_tenant.id %}#00d4ff{% else %}#a8ccdb{% endif %}; background:{% if t.id == current_tenant.id %}rgba(0,212,255,0.09){% else %}transparent{% endif %}; border-bottom:1px solid rgba(0,180,220,0.07); transition:background 0.14s;" onmouseover="this.style.background='rgba(0,212,255,0.12)'" onmouseout="this.style.background='{% if t.id == current_tenant.id %}rgba(0,212,255,0.09){% else %}transparent{% endif %}'">
+                    {% if t.id == current_tenant.id %}<span style="color:#00ffb3; font-size:0.7rem;">&#10003;</span>{% else %}<span style="width:12px;display:inline-block;"></span>{% endif %}
+                    {{ t.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Theme toggle -->
         <button id="themeToggleBtn" type="button" title="Toggle dark mode" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
             <svg id="themeSunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
@@ -442,6 +462,21 @@
 
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+
+    /* ── Tenant switcher ───────────────────────────────────────── */
+    function toggleTenantMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const menu = document.getElementById('tenantSwitcherMenu');
+        if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('tenantSwitcherMenu');
+        if (!e.target.closest('.tenant-switcher-dropdown') && menu) {
+            menu.style.display = 'none';
+        }
+    });
 
     /* ── User menu ─────────────────────────────────────────────── */
     function toggleUserMenu(e) {

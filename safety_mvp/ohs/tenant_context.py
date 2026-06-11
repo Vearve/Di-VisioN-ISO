@@ -46,6 +46,15 @@ def resolve_current_tenant(request):
     if not tenants.exists():
         return None
 
+    # Non-superusers with exactly one membership never bleed into another tenant
+    # regardless of what the session says.
+    if not request.user.is_superuser:
+        all_tenants = list(tenants[:2])
+        if len(all_tenants) == 1:
+            request.session[SESSION_TENANT_KEY] = all_tenants[0].id
+            return all_tenants[0]
+
+    # Multi-tenant users: honour explicit ?tenant= param first
     query_tenant_id = request.GET.get("tenant")
     if query_tenant_id:
         candidate = tenants.filter(id=query_tenant_id).first()
@@ -53,11 +62,14 @@ def resolve_current_tenant(request):
             request.session[SESSION_TENANT_KEY] = candidate.id
             return candidate
 
+    # Then try session — but only if the stored tenant still belongs to this user
     session_tenant_id = request.session.get(SESSION_TENANT_KEY)
     if session_tenant_id:
         candidate = tenants.filter(id=session_tenant_id).first()
         if candidate:
             return candidate
+        # Session has a stale / cross-user tenant — clear it
+        request.session.pop(SESSION_TENANT_KEY, None)
 
     default_tenant = tenants.order_by("id").first()
     if default_tenant:
