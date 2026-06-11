@@ -1,4 +1,8 @@
+from functools import wraps
+
+from django.contrib import messages
 from django.db.models import QuerySet
+from django.shortcuts import redirect
 
 from .models import Tenant, TenantMembership
 
@@ -107,3 +111,48 @@ def has_minimum_role(user_role, minimum_role):
     if not user_role:
         return False
     return ROLE_ORDER.get(user_role, 0) >= ROLE_ORDER.get(minimum_role, 0)
+
+
+def tenant_required(read_min='worker', write_min='supervisor'):
+    """
+    Decorator for function-based views that enforces tenant membership and role.
+
+    GET/HEAD requests require at least `read_min` role (default: worker).
+    POST/PUT/PATCH/DELETE requests require at least `write_min` role (default: supervisor).
+
+    Uses request.current_tenant_role set by CurrentTenantMiddleware — no extra
+    DB hit. Falls back to a live lookup if the attribute is absent.
+
+    Usage:
+        @tenant_required()
+        def my_view(request): ...
+
+        @tenant_required(read_min='auditor', write_min='admin')
+        def sensitive_view(request): ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('login')
+
+            role = getattr(request, 'current_tenant_role', None)
+            if role is None:
+                role = user_role_for_tenant(request.user, getattr(request, 'current_tenant', None))
+
+            if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+                required = write_min
+            else:
+                required = read_min
+
+            if not has_minimum_role(role, required):
+                messages.error(
+                    request,
+                    f'Your role ({role or "none"}) does not have permission for this action. '
+                    f'Required: {required}.',
+                )
+                return redirect('home')
+
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator

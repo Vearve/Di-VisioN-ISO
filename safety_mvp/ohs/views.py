@@ -14,7 +14,7 @@ from django.db.models import Q, Sum
 logger = logging.getLogger(__name__)
 from .pdf_export import PDFGenerator
 from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport, EnvironmentalAspect, WasteManagementLog, SpillReleaseIncident, EnvironmentalObjective, EnergyWaterConsumption
-from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
+from .tenant_context import has_minimum_role, tenant_required, user_role_for_tenant, user_tenants
 from .forms import (
     AttendanceRecordForm,
     CAPAActionForm,
@@ -345,6 +345,7 @@ def _home_inner(request):
     })
 
 
+@tenant_required()
 def schedule_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
@@ -371,6 +372,7 @@ def schedule_center(request):
     })
 
 
+@tenant_required()
 def capa_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
@@ -394,6 +396,7 @@ def capa_center(request):
     })
 
 
+@tenant_required()
 def medical_center(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
@@ -420,6 +423,7 @@ def medical_center(request):
     })
 
 
+@tenant_required()
 def analytics_dashboard(request):
     from datetime import date as _date
     current_tenant = getattr(request, 'current_tenant', None)
@@ -571,17 +575,13 @@ def analytics_dashboard(request):
     })
 
 
-@login_required
+@tenant_required(read_min='supervisor', write_min='admin')
 def presets_page(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
-    current_role = user_role_for_tenant(request.user, current_tenant)
-
-    if not has_minimum_role(current_role, 'supervisor'):
-        messages.error(request, 'You do not have access to presets for the selected tenant.')
-        return redirect('home')
+    current_role = getattr(request, 'current_tenant_role', None) or user_role_for_tenant(request.user, current_tenant)
 
     if current_tenant is None:
         messages.error(request, 'No tenant selected. Select a tenant first.')
@@ -614,16 +614,13 @@ def presets_page(request):
     })
 
 
+@tenant_required(read_min='supervisor', write_min='admin')
 def site_projects_page(request):
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
-    current_role = user_role_for_tenant(request.user, current_tenant)
-
-    if not has_minimum_role(current_role, 'supervisor'):
-        messages.error(request, 'You do not have access to site and project management for the selected tenant.')
-        return redirect('home')
+    current_role = getattr(request, 'current_tenant_role', None) or user_role_for_tenant(request.user, current_tenant)
 
     site_qs = SiteProject.objects.none()
     if current_tenant:
@@ -722,14 +719,11 @@ def site_projects_page(request):
     })
 
 
+@tenant_required(read_min='worker', write_min='supervisor')
 def site_manage_page(request, site_id):
     current_tenant = getattr(request, 'current_tenant', None)
-    current_role = user_role_for_tenant(request.user, current_tenant)
+    current_role = getattr(request, 'current_tenant_role', None) or user_role_for_tenant(request.user, current_tenant)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
-
-    if not has_minimum_role(current_role, 'worker'):
-        messages.error(request, 'You do not have access to this site workspace.')
-        return redirect('home')
 
     site = SiteProject.objects.filter(tenant=current_tenant, id=site_id).first() if current_tenant else None
     if not site:
@@ -908,6 +902,7 @@ def _module_page(
     description,
     route_name,
     user_role_min='worker',
+    write_role_min='supervisor',
     auto_user_fields=None,
     list_fields=None,
     form_sections=None,
@@ -919,7 +914,8 @@ def _module_page(
     current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
     available_sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name') if current_tenant else SiteProject.objects.none()
-    current_role = user_role_for_tenant(request.user, current_tenant)
+    # Prefer middleware-cached role; fall back to a live lookup only if missing.
+    current_role = getattr(request, 'current_tenant_role', None) or user_role_for_tenant(request.user, current_tenant)
 
     if not has_minimum_role(current_role, user_role_min):
         messages.error(request, 'You do not have access to this page for the selected tenant.')
@@ -957,6 +953,14 @@ def _module_page(
         edit_instance = edit_qs.filter(id=edit_id).first()
 
     if request.method == 'POST':
+        if not has_minimum_role(current_role, write_role_min):
+            messages.error(
+                request,
+                f'Your role ({current_role or "none"}) cannot create, edit, or delete records here. '
+                f'Required: {write_role_min}.',
+            )
+            return redirect(route_name)
+
         delete_id = request.POST.get('delete_id')
         if delete_id and current_tenant:
             delete_qs = _scope_queryset(model.objects.all(), current_tenant, current_site)
@@ -1073,6 +1077,7 @@ def _module_page(
     })
 
 
+@tenant_required()
 def export_to_pdf(request, module_name):
     """Export module data to PDF format."""
     current_tenant = getattr(request, 'current_tenant', None)
@@ -1890,6 +1895,7 @@ def ccv_page(request):
     )
 
 
+@tenant_required()
 def checklists_page(request):
     checklist_field_map = {
         'Daily': [
