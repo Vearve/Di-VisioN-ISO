@@ -235,7 +235,7 @@ def _get_company_logo_url(tenant):
         preset = TenantPreset.objects.get(tenant=tenant)
         if preset.company_logo:
             return preset.company_logo.url
-    except TenantPreset.DoesNotExist:
+    except Exception:
         pass
     return None
 
