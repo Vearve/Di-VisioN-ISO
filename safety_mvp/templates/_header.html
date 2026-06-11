@@ -2,46 +2,115 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
 <style>
-    /* ── Light mode overrides ─────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       LIGHT MODE — full override
+       The app is dark-first. Light mode must override EVERY dark value,
+       including inline styles on <header> (using !important which beats
+       inline in the CSS cascade) and hardcoded template colours.
+       ══════════════════════════════════════════════════════════════ */
+
     body.light-mode {
-        --bg: #f0f5ff;
-        --surface: rgba(255,255,255,0.97);
-        --text: #1e2d4a;
-        --text-bright: #0f1f38;
-        --muted: #5a6e94;
-        --line: rgba(0,100,180,0.14);
-        --accent: #0077b6;
-        --accent2: #00a896;
-        --accent-grd: linear-gradient(135deg, #0077b6 0%, #00a896 100%);
-        --danger: #dc2626;
-        --sidebar-text: #2c4a7c;
-        --glow-sm: 0 0 18px rgba(0,119,182,0.15);
-        --card-shadow: 0 4px 16px rgba(0,0,0,0.09), 0 1px 0 rgba(0,100,180,0.06) inset;
-        background-color: #f0f5ff !important;
-        background-image:
-            radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,100,200,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,200,150,0.04) 0%, transparent 55%) !important;
+        /* ── CSS custom properties ───────────────────────────────── */
+        --bg:            #f2f6fc;
+        --surface:       #ffffff;
+        --text:          #1a2744;
+        --text-bright:   #0d1b38;
+        --muted:         #4e6080;
+        --line:          rgba(0,70,150,0.13);
+        --accent:        #0062cc;
+        --accent2:       #00885e;
+        --accent-grd:    linear-gradient(135deg, #0062cc 0%, #00885e 100%);
+        --danger:        #c82333;
+        --sidebar-text:  #1e3a6a;
+        --glow-sm:       0 0 14px rgba(0,98,204,0.14);
+        --card-shadow:   0 2px 10px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.9) inset;
+        /* Retro amber → dark brown-orange so it's readable on white */
+        --amber:         #8c5200;
+        --amber-dim:     rgba(140,82,0,0.08);
+        --amber-glow:    0 0 5px rgba(140,82,0,0.22), 0 0 10px rgba(140,82,0,0.08);
+
+        background-color: #f2f6fc !important;
+        background-image: none !important;
         color: var(--text) !important;
     }
 
+    /* ── Header (inline styles → override with !important) ──────── */
+    body.light-mode header {
+        background: #ffffff !important;
+        background-image: none !important;
+        color: #1a2744 !important;
+        box-shadow: 0 1px 0 rgba(0,70,150,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+        border-bottom: 1px solid rgba(0,70,150,0.1) !important;
+    }
+    /* Brand diamond + "Di-VisioN" text */
+    body.light-mode header .brand-diamond { color: #0062cc !important; -webkit-text-fill-color: #0062cc !important; }
+    /* All icons in the header */
+    body.light-mode header svg { color: #1a2744 !important; stroke: currentColor; }
+    /* Button hover colours */
+    body.light-mode #sidebarToggleBtn { color: #1a2744 !important; }
+    body.light-mode #themeToggleBtn   { color: #1a2744 !important; }
+    /* User name text */
+    body.light-mode .user-name-text   { color: #1a2744 !important; }
+    /* User menu dropdown */
+    body.light-mode .user-menu {
+        background: #ffffff !important;
+        border-color: rgba(0,70,150,0.16) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+    }
+    body.light-mode .user-menu a,
+    body.light-mode .user-menu button { color: #1a2744 !important; }
+    /* Tenant switcher button in header */
+    body.light-mode .tenant-switcher-dropdown > button {
+        background: rgba(0,98,204,0.09) !important;
+        border-color: rgba(0,98,204,0.25) !important;
+        color: #0062cc !important;
+    }
+    body.light-mode #tenantSwitcherMenu {
+        background: #ffffff !important;
+        border-color: rgba(0,70,150,0.18) !important;
+    }
+
+    /* ── Mobile bottom nav ───────────────────────────────────────── */
+    body.light-mode .mobile-bottom-nav {
+        background: #ffffff !important;
+        border-top: 1px solid rgba(0,70,150,0.13) !important;
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.06) !important;
+    }
+    body.light-mode .mobile-bottom-nav a,
+    body.light-mode .mobile-bottom-nav button.mob-tab {
+        color: #5b6f8c !important;
+    }
+    body.light-mode .mobile-bottom-nav a.mob-active,
+    body.light-mode .mobile-bottom-nav button.mob-tab.mob-active {
+        color: #0062cc !important;
+        border-top-color: #0062cc !important;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
     body.light-mode .sidebar {
-        background: linear-gradient(180deg, #dce8f5 0%, #e8f0fb 100%) !important;
-        border-right-color: rgba(0,100,180,0.12) !important;
-        color: var(--sidebar-text) !important;
+        background: linear-gradient(180deg, #e8f0fb 0%, #dde8f7 100%) !important;
+        border-right: 1px solid rgba(0,70,150,0.12) !important;
+        color: #1e3a6a !important;
     }
     body.light-mode .sidebar .brand-name,
-    body.light-mode .sidebar .tenant-info strong { color: #0f1f38 !important; }
+    body.light-mode .sidebar .tenant-info strong { color: #0d1b38 !important; }
     body.light-mode .sidebar .brand-sub,
-    body.light-mode .sidebar .muted-sm { color: #5a6e94 !important; }
-    body.light-mode .sidebar .context-box {
-        background: rgba(0,100,180,0.06) !important;
-        border-color: rgba(0,100,180,0.15) !important;
-        color: #2c4a7c !important;
+    body.light-mode .sidebar .muted-sm           { color: #4e6080 !important; }
+    body.light-mode .sidebar .logo-area {
+        background: rgba(0,98,204,0.07) !important;
+        border-color: rgba(0,98,204,0.14) !important;
     }
-    body.light-mode .menu-group a { color: #2c4a7c !important; }
-    body.light-mode .menu-group a:hover  { background: rgba(0,119,182,0.09) !important; color: var(--accent) !important; border-color: rgba(0,119,182,0.25) !important; }
-    body.light-mode .menu-group a.active { background: rgba(0,119,182,0.13) !important; color: var(--accent) !important; border-color: rgba(0,119,182,0.35) !important; }
+    body.light-mode .sidebar .context-box {
+        background: rgba(0,98,204,0.06) !important;
+        border-color: rgba(0,98,204,0.14) !important;
+        color: #1e3a6a !important;
+    }
+    body.light-mode .sidebar .menu-group h4 { color: rgba(0,98,204,0.5) !important; }
+    body.light-mode .menu-group a           { color: #1e3a6a !important; }
+    body.light-mode .menu-group a:hover     { background: rgba(0,98,204,0.09) !important; color: #0062cc !important; border-color: rgba(0,98,204,0.22) !important; }
+    body.light-mode .menu-group a.active    { background: rgba(0,98,204,0.13) !important; color: #0062cc !important; border-color: rgba(0,98,204,0.32) !important; }
 
+    /* ── Cards, panels, content areas ───────────────────────────── */
     body.light-mode .content,
     body.light-mode .panel,
     body.light-mode .metric,
@@ -50,70 +119,100 @@
     body.light-mode .card,
     body.light-mode .module-card,
     body.light-mode .activity,
-    body.light-mode .ll-panel {
-        background: var(--surface) !important;
+    body.light-mode .ll-panel,
+    body.light-mode .qs-card,
+    body.light-mode .kpi-card {
+        background: #ffffff !important;
         color: var(--text) !important;
-        border-color: var(--line) !important;
+        border-color: rgba(0,70,150,0.12) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
     }
-
-    body.light-mode h1, body.light-mode h2, body.light-mode h3,
-    body.light-mode .text-bright, body.light-mode .module-card strong {
-        color: var(--text-bright) !important;
+    body.light-mode .module-card { clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%) !important; }
+    body.light-mode .module-card strong { color: #0d1b38 !important; }
+    body.light-mode .module-card a {
+        background: rgba(0,98,204,0.09) !important;
+        color: #0062cc !important;
+        border-color: rgba(0,98,204,0.24) !important;
     }
+    body.light-mode .module-card a:hover { background: rgba(0,98,204,0.16) !important; }
+    body.light-mode .ems-card { border-color: rgba(0,136,94,0.2) !important; }
+    body.light-mode .ems-card a { color: #00885e !important; background: rgba(0,136,94,0.08) !important; border-color: rgba(0,136,94,0.22) !important; }
 
-    body.light-mode th    { color: var(--muted) !important; }
-    body.light-mode td    { color: var(--text) !important; border-color: rgba(0,100,180,0.08) !important; }
-    body.light-mode tbody tr:hover td { background: rgba(0,100,180,0.04) !important; }
+    /* ── Typography ──────────────────────────────────────────────── */
+    body.light-mode h1, body.light-mode h2, body.light-mode h3 { color: #0d1b38 !important; }
+    body.light-mode .muted, body.light-mode .records-meta,
+    body.light-mode .helptext, body.light-mode label,
+    body.light-mode .meta, body.light-mode .count { color: #4e6080 !important; }
 
-    body.light-mode .muted,
-    body.light-mode .records-meta,
-    body.light-mode .helptext,
-    body.light-mode label,
-    body.light-mode .meta { color: var(--muted) !important; }
+    /* ── Tables ──────────────────────────────────────────────────── */
+    body.light-mode th   { color: #4e6080 !important; border-color: rgba(0,70,150,0.08) !important; }
+    body.light-mode td   { color: #1a2744 !important; border-color: rgba(0,70,150,0.07) !important; }
+    body.light-mode tbody tr:hover td { background: rgba(0,98,204,0.04) !important; }
 
+    /* ── Forms ───────────────────────────────────────────────────── */
     body.light-mode input,
     body.light-mode select,
     body.light-mode textarea {
-        background: #ffffff !important;
-        color: var(--text) !important;
-        border-color: rgba(0,100,180,0.25) !important;
+        background: #f8faff !important;
+        color: #1a2744 !important;
+        border-color: rgba(0,70,150,0.22) !important;
+    }
+    body.light-mode input:focus,
+    body.light-mode select:focus,
+    body.light-mode textarea:focus {
+        border-color: #0062cc !important;
+        box-shadow: 0 0 0 3px rgba(0,98,204,0.12) !important;
+        outline: none !important;
     }
 
-    body.light-mode .module-card a,
-    body.light-mode .cta,
-    body.light-mode .action-link.manage,
-    body.light-mode .action-btn.manage {
-        background: rgba(0,119,182,0.1) !important;
-        color: var(--accent) !important;
-        border-color: rgba(0,119,182,0.28) !important;
-    }
-
+    /* ── Buttons / action links ──────────────────────────────────── */
     body.light-mode .action-link,
     body.light-mode .action-btn {
-        background: rgba(0,119,182,0.06) !important;
-        color: var(--text) !important;
-        border-color: rgba(0,100,180,0.2) !important;
+        background: rgba(0,98,204,0.07) !important;
+        color: #1a2744 !important;
+        border-color: rgba(0,70,150,0.18) !important;
     }
-
-    body.light-mode .user-menu {
-        background: #ffffff !important;
-        border-color: rgba(0,100,180,0.18) !important;
+    body.light-mode .action-link.manage,
+    body.light-mode .action-btn.manage,
+    body.light-mode .cta {
+        background: rgba(0,98,204,0.1) !important;
+        color: #0062cc !important;
+        border-color: rgba(0,98,204,0.26) !important;
     }
-    body.light-mode .user-menu a,
-    body.light-mode .user-menu button { color: var(--text) !important; }
+    body.light-mode .kpi-btn.primary { background: rgba(0,98,204,0.1) !important; border-color: rgba(0,98,204,0.3) !important; color: #0062cc !important; }
+    body.light-mode .kpi-btn.blue    { background: rgba(37,99,235,0.09) !important; color: #1d4ed8 !important; }
+    body.light-mode .kpi-btn.purple  { background: rgba(109,40,217,0.09) !important; color: #6d28d9 !important; }
 
-    body.light-mode .mobile-bottom-nav {
-        background: #dce8f5 !important;
-        border-top-color: rgba(0,119,182,0.2) !important;
-    }
-    body.light-mode .mobile-bottom-nav a,
-    body.light-mode .mobile-bottom-nav button.mob-tab { color: #5a6e94 !important; }
-    body.light-mode .mobile-bottom-nav a.mob-active,
-    body.light-mode .mobile-bottom-nav button.mob-tab.mob-active { color: var(--accent) !important; border-top-color: var(--accent) !important; }
+    /* ── Tabs (site_manage) ──────────────────────────────────────── */
+    body.light-mode .tab-bar { border-bottom-color: rgba(0,70,150,0.14) !important; }
+    body.light-mode .tab-btn { color: #4e6080 !important; }
+    body.light-mode .tab-btn:hover { color: #1a2744 !important; }
+    body.light-mode .tab-btn.active { color: #0062cc !important; border-bottom-color: #0062cc !important; }
 
-    body.light-mode .retro-grid { background-image: radial-gradient(circle, rgba(0,100,180,0.04) 1px, transparent 1px) !important; }
-    body.light-mode .retro-crt  { background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.012) 3px, rgba(0,0,0,0.012) 4px) !important; }
-    body.light-mode .metric .value { --amber: #b56c00 !important; }
+    /* ── Alert strip (site_manage overview) ─────────────────────── */
+    body.light-mode .alert-item.danger  { background: rgba(200,35,51,0.07) !important; border-color: rgba(200,35,51,0.22) !important; color: #9b1b2a !important; }
+    body.light-mode .alert-item.warning { background: rgba(140,82,0,0.07) !important; border-color: rgba(140,82,0,0.22) !important; color: #6b3c00 !important; }
+    body.light-mode .no-alerts { background: rgba(0,136,94,0.07) !important; border-color: rgba(0,136,94,0.2) !important; color: #00562e !important; }
+
+    /* ── Quick-stats cards ───────────────────────────────────────── */
+    body.light-mode .qs-card { background: #ffffff !important; border-color: rgba(0,70,150,0.12) !important; }
+    body.light-mode .qs-label { color: #4e6080 !important; }
+
+    /* ── Quick-action buttons ────────────────────────────────────── */
+    body.light-mode .qa-btn.primary { background: rgba(0,98,204,0.1) !important; color: #0062cc !important; border-color: rgba(0,98,204,0.26) !important; }
+    body.light-mode .qa-btn.green   { background: rgba(0,136,94,0.09) !important; color: #006b45 !important; border-color: rgba(0,136,94,0.24) !important; }
+    body.light-mode .qa-btn.amber   { background: rgba(140,82,0,0.09) !important; color: #6b3c00 !important; border-color: rgba(140,82,0,0.24) !important; }
+    body.light-mode .qa-btn.danger  { background: rgba(200,35,51,0.08) !important; color: #9b1b2a !important; border-color: rgba(200,35,51,0.22) !important; }
+
+    /* ── Retro-tech layer: muted for light ───────────────────────── */
+    body.light-mode .retro-grid { background-image: radial-gradient(circle, rgba(0,70,150,0.04) 1px, transparent 1px) !important; }
+    body.light-mode .retro-crt  { background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.008) 3px, rgba(0,0,0,0.008) 4px) !important; }
+    body.light-mode .retro-page-title { color: #8c5200 !important; opacity: 0.7 !important; }
+    /* LED dots: desaturate slightly for light bg */
+    body.light-mode .led-green { box-shadow: 0 0 4px rgba(0,136,94,0.5) !important; }
+    body.light-mode .led-amber { box-shadow: 0 0 4px rgba(140,82,0,0.4) !important; }
+    body.light-mode .led-red   { box-shadow: 0 0 4px rgba(200,35,51,0.4) !important; }
+    body.light-mode .led-blue  { box-shadow: 0 0 4px rgba(0,98,204,0.4) !important; }
 
     /* ── Sidebar overlay ───────────────────────────────────────── */
     .sidebar-overlay {
@@ -330,11 +429,34 @@
     }
     .retro-page-title::before { content: '[ '; }
     .retro-page-title::after  { content: ' ]'; }
+
+    /* ── Header button CSS hovers (replaces inline onmouseover) ─── */
+    .hdr-btn {
+        background: none;
+        border: none;
+        color: #d3e5ec;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        transition: background 0.18s, color 0.18s;
+    }
+    .hdr-btn:hover { background: rgba(79,179,163,0.2); }
+    .hdr-btn.hdr-logout:hover { background: rgba(196,68,47,0.22); color: #ff7a6a; }
+
+    body.light-mode .hdr-btn         { color: #1a2744; }
+    body.light-mode .hdr-btn:hover   { background: rgba(0,98,204,0.1); color: #0062cc; }
+    body.light-mode .hdr-btn.hdr-logout:hover { background: rgba(200,35,51,0.1); color: #c82333; }
+    body.light-mode .user-menu-trigger { color: #1a2744 !important; }
+    body.light-mode .user-menu-trigger:hover { background: rgba(0,98,204,0.07) !important; }
 </style>
 
 <header style="position: sticky; top: 0; z-index: 1000; background: linear-gradient(90deg, #0f2c35 0%, #123845 100%); color: #d3e5ec; padding: 0 20px; height: 60px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
     <div style="display: flex; align-items: center; gap: 10px;">
-        <button id="sidebarToggleBtn" type="button" title="Menu" style="display:none; background:none; border:none; color:#d3e5ec; cursor:pointer; width:44px; height:44px; border-radius:8px; align-items:center; justify-content:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
+        <button id="sidebarToggleBtn" type="button" title="Menu" class="hdr-btn" style="display:none;">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
@@ -368,7 +490,7 @@
         {% endif %}
 
         <!-- Theme toggle -->
-        <button id="themeToggleBtn" type="button" title="Toggle dark mode" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(79,179,163,0.2)'" onmouseout="this.style.background='none'">
+        <button id="themeToggleBtn" type="button" title="Toggle light/dark mode" class="hdr-btn">
             <svg id="themeSunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
                 <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
@@ -394,7 +516,7 @@
         <!-- Logout -->
         <form method="post" action="/logout/" style="margin:0;">
             {% csrf_token %}
-            <button type="submit" title="Logout" style="background:none; border:none; color:#d3e5ec; cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; transition:background 0.2s, color 0.2s;" onmouseover="this.style.background='rgba(196,68,47,0.25)';this.style.color='#ff7a6a';" onmouseout="this.style.background='none';this.style.color='#d3e5ec';">
+            <button type="submit" title="Logout" class="hdr-btn hdr-logout">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
