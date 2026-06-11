@@ -172,6 +172,65 @@
         }
         .module-card a:hover { background: rgba(0,212,255,0.2); box-shadow: var(--glow-sm); }
 
+        /* ─── Alerts strip ───────────────────────────────────────── */
+        .alerts-strip { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .alert-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 14px; border-radius: 9px; font-size: 0.83rem; font-weight: 600;
+        }
+        .alert-item.danger {
+            background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.28); color: #ff8fa3;
+        }
+        .alert-item.warning {
+            background: rgba(255,153,0,0.1); border: 1px solid rgba(255,153,0,0.28); color: #ffb84d;
+        }
+        .alert-item a { color: inherit; text-decoration: underline; margin-left: auto; font-size: 0.76rem; opacity: 0.75; white-space: nowrap; }
+        .alert-item a:hover { opacity: 1; }
+        .alert-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; animation: led-pulse 2s ease-in-out infinite; }
+        .alert-item.danger .alert-dot  { background: #ff4d6d; box-shadow: 0 0 6px #ff4d6d; }
+        .alert-item.warning .alert-dot { background: #ff9900; box-shadow: 0 0 6px #ff9900; }
+        @keyframes led-pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+        .no-alerts { padding: 10px 14px; background: rgba(0,255,179,0.07); border: 1px solid rgba(0,255,179,0.18); border-radius: 9px; color: #00ffb3; font-size: 0.82rem; font-weight: 600; display:flex; align-items:center; gap:8px; margin-bottom: 14px; }
+
+        /* ─── Quick stats strip ───────────────────────────────────── */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .qs-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px 12px;
+            text-decoration: none;
+            display: block;
+            transition: transform 0.16s, border-color 0.16s;
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+        }
+        .qs-card:hover { transform: translateY(-2px); border-color: rgba(0,200,255,0.3); }
+        .qs-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; margin-bottom: 5px; }
+        .qs-value { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; line-height: 1; }
+
+        /* ─── Quick actions ───────────────────────────────────────── */
+        .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+        .qa-btn {
+            display: flex; align-items: center; gap: 7px;
+            padding: 9px 15px; border-radius: 9px; text-decoration: none;
+            font-size: 0.82rem; font-weight: 700; border: 1px solid transparent;
+            transition: all 0.16s; white-space: nowrap;
+        }
+        .qa-btn.primary { background: rgba(0,212,255,0.12); color: var(--accent); border-color: rgba(0,212,255,0.3); }
+        .qa-btn.primary:hover { background: rgba(0,212,255,0.22); box-shadow: var(--glow-sm); }
+        .qa-btn.green  { background: rgba(0,255,179,0.1); color: #00ffb3; border-color: rgba(0,255,179,0.28); }
+        .qa-btn.green:hover  { background: rgba(0,255,179,0.2); }
+        .qa-btn.amber  { background: rgba(255,153,0,0.1); color: #ff9900; border-color: rgba(255,153,0,0.28); }
+        .qa-btn.amber:hover  { background: rgba(255,153,0,0.2); }
+        .qa-btn.danger { background: rgba(255,77,109,0.1); color: #ff7c8e; border-color: rgba(255,77,109,0.28); }
+        .qa-btn.danger:hover { background: rgba(255,77,109,0.2); }
+        .qa-icon { font-size: 1rem; line-height: 1; }
+
         /* ─── Activity table ──────────────────────────────────────── */
         .activity {
             margin-top: 18px;
@@ -201,6 +260,9 @@
             .sidebar.drawer-open { transform: translateX(0); }
             .content { padding: 14px; }
         }
+        @media (max-width: 900px) {
+            .quick-stats { grid-template-columns: repeat(4, 1fr); }
+        }
         @media (max-width: 768px) {
             .content { padding: 10px; }
             h1 { font-size: 1.1rem; }
@@ -209,10 +271,13 @@
             .module-card { padding: 10px; border-radius: 10px; }
             table { min-width: 380px; }
             th, td { padding: 7px 5px; font-size: 0.76px; }
+            .quick-stats { grid-template-columns: repeat(3, 1fr); }
+            .quick-actions { gap: 6px; }
         }
         @media (max-width: 480px) {
             .module-grid { grid-template-columns: 1fr; }
             .kpi-actions { flex-direction: column; }
+            .quick-stats { grid-template-columns: repeat(2, 1fr); }
         }
 
         /* ─── Tabs ────────────────────────────────────────────────── */
@@ -316,6 +381,43 @@
 
             <!-- OVERVIEW TAB -->
             <div id="tab-overview" class="tab-panel">
+
+                <!-- Alerts strip -->
+                {% if alerts %}
+                <div class="alerts-strip">
+                    {% for alert in alerts %}
+                    <div class="alert-item {{ alert.level }}">
+                        <span class="alert-dot"></span>
+                        <span>{{ alert.msg }}</span>
+                        <a href="{{ alert.url }}">View &rarr;</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-alerts">
+                    <span class="led led-green"></span>
+                    All systems nominal &mdash; no active alerts.
+                </div>
+                {% endif %}
+
+                <!-- Quick stats -->
+                <div class="quick-stats">
+                    {% for label, count, url, colour in quick_stats %}
+                    <a class="qs-card" href="{{ url }}">
+                        <div class="qs-label">{{ label }}</div>
+                        <div class="qs-value" style="color:{{ colour }}; text-shadow: 0 0 10px {{ colour }}66;">{{ count }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick actions -->
+                <div class="quick-actions">
+                    <a class="qa-btn danger" href="/app/incidents/?action=add"><span class="qa-icon">&#9888;</span> Add Incident</a>
+                    <a class="qa-btn primary" href="/app/checklists/?action=add"><span class="qa-icon">&#10003;</span> New Checklist</a>
+                    <a class="qa-btn green" href="/app/toolbox-talks/?action=add"><span class="qa-icon">&#9740;</span> New Toolbox Talk</a>
+                    <a class="qa-btn amber" href="/app/ems/waste/?action=add"><span class="qa-icon">&#9851;</span> Add Waste Log</a>
+                </div>
+
                 {% if kpi_metrics %}
                 <div>
                     <div class="kpi-section-header">

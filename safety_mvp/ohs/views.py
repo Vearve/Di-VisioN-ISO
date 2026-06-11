@@ -764,6 +764,59 @@ def site_manage_page(request, site_id):
         ('Energy & Water Consumption', '/app/ems/energy/', EnergyWaterConsumption.objects.filter(tenant=current_tenant, site=site).count()),
     ]
 
+    # ── Alerts (action items needing attention) ───────────────────
+    from datetime import date as _today_date, timedelta as _td
+    _today = _today_date.today()
+    _soon = _today + _td(days=30)
+    alerts = []
+
+    _overdue_capa = CAPAAction.objects.filter(
+        tenant=current_tenant, site=site,
+        status__in=['open', 'in_progress', 'pending_review'],
+        due_date__lt=_today,
+    ).count()
+    if _overdue_capa:
+        alerts.append({'level': 'danger', 'msg': f'{_overdue_capa} CAPA action{"s" if _overdue_capa > 1 else ""} overdue', 'url': '/app/capa/'})
+
+    _med_expired = MedicalAssessment.objects.filter(
+        profile__tenant=current_tenant, profile__site=site, valid_until__lt=_today,
+    ).count()
+    if _med_expired:
+        alerts.append({'level': 'danger', 'msg': f'{_med_expired} medical assessment{"s" if _med_expired > 1 else ""} expired', 'url': '/app/medical-assessments/'})
+
+    from .models import Certification
+    _certs_expired = Certification.objects.filter(
+        tenant=current_tenant, site=site, expiry_date__lt=_today,
+    ).count()
+    if _certs_expired:
+        alerts.append({'level': 'danger', 'msg': f'{_certs_expired} certification{"s" if _certs_expired > 1 else ""} expired', 'url': '/app/certifications/'})
+
+    _certs_soon = Certification.objects.filter(
+        tenant=current_tenant, site=site, expiry_date__gte=_today, expiry_date__lte=_soon,
+    ).count()
+    if _certs_soon:
+        alerts.append({'level': 'warning', 'msg': f'{_certs_soon} certification{"s" if _certs_soon > 1 else ""} expiring within 30 days', 'url': '/app/certifications/'})
+
+    _open_spills = SpillReleaseIncident.objects.filter(
+        tenant=current_tenant, site=site, cleanup_completed=False,
+    ).count()
+    if _open_spills:
+        alerts.append({'level': 'warning', 'msg': f'{_open_spills} spill incident{"s" if _open_spills > 1 else ""} with cleanup not confirmed', 'url': '/app/ems/spills/'})
+
+    # ── Quick stats strip ─────────────────────────────────────────
+    quick_stats = [
+        ('Incidents',    Incident.objects.filter(tenant=current_tenant, site=site).count(),                                   '/app/incidents/',   '#ff4d6d'),
+        ('Open CAPA',    CAPAAction.objects.filter(tenant=current_tenant, site=site, status__in=['open','in_progress']).count(), '/app/capa/',        '#f59e0b'),
+        ('Checklists',   SafetyChecklist.objects.filter(tenant=current_tenant, site=site).count(),                            '/app/checklists/',  '#00d4ff'),
+        ('Toolbox Talks',ToolboxTalk.objects.filter(tenant=current_tenant, site=site).count(),                                '/app/toolbox-talks/','#00ffb3'),
+        ('Employees',    Employee.objects.filter(tenant=current_tenant, site=site).count(),                                   '/app/employees/',   '#c084fc'),
+        ('Training',     TrainingMatrix.objects.filter(tenant=current_tenant, site=site).count(),                             '/app/training/',    '#c084fc'),
+        ('Env. Aspects', EnvironmentalAspect.objects.filter(tenant=current_tenant, site=site).count(),                       '/app/ems/aspects/', '#00ffb3'),
+        ('Waste Logs',   WasteManagementLog.objects.filter(tenant=current_tenant, site=site).count(),                        '/app/ems/waste/',   '#f59e0b'),
+        ('Spill Reports',SpillReleaseIncident.objects.filter(tenant=current_tenant, site=site).count(),                      '/app/ems/spills/',  '#ff4d6d'),
+        ('Energy Reads', EnergyWaterConsumption.objects.filter(tenant=current_tenant, site=site).count(),                    '/app/ems/energy/',  '#00d4ff'),
+    ]
+
     recent_activity = AuditLog.objects.filter(tenant=current_tenant, site=site).order_by('-created_at')[:12]
     
     # Calculate KPI metrics for the last 30 days
@@ -773,6 +826,8 @@ def site_manage_page(request, site_id):
         'site': site,
         'module_links': module_links,
         'ems_links': ems_links,
+        'alerts': alerts,
+        'quick_stats': quick_stats,
         'kpi_metrics': kpi_metrics,
         'current_tenant': current_tenant,
         'current_site': site,

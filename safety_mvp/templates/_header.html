@@ -2,76 +2,118 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
 <style>
-    /* ── Dark mode overrides ───────────────────────────────────── */
-    body.dark-mode {
-        background: #0f172a !important;
-        color: #e2e8f0 !important;
+    /* ── Light mode overrides ─────────────────────────────────── */
+    body.light-mode {
+        --bg: #f0f5ff;
+        --surface: rgba(255,255,255,0.97);
+        --text: #1e2d4a;
+        --text-bright: #0f1f38;
+        --muted: #5a6e94;
+        --line: rgba(0,100,180,0.14);
+        --accent: #0077b6;
+        --accent2: #00a896;
+        --accent-grd: linear-gradient(135deg, #0077b6 0%, #00a896 100%);
+        --danger: #dc2626;
+        --sidebar-text: #2c4a7c;
+        --glow-sm: 0 0 18px rgba(0,119,182,0.15);
+        --card-shadow: 0 4px 16px rgba(0,0,0,0.09), 0 1px 0 rgba(0,100,180,0.06) inset;
+        background-color: #f0f5ff !important;
+        background-image:
+            radial-gradient(ellipse 70% 50% at 10% 5%, rgba(0,100,200,0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,200,150,0.04) 0%, transparent 55%) !important;
+        color: var(--text) !important;
     }
 
-    body.dark-mode .content,
-    body.dark-mode .panel,
-    body.dark-mode .metric,
-    body.dark-mode .table-panel,
-    body.dark-mode .topbar,
-    body.dark-mode .info-card,
-    body.dark-mode .context-box,
-    body.dark-mode .card,
-    body.dark-mode .module-card,
-    body.dark-mode .activity,
-    body.dark-mode .content > .header {
-        background: #1e293b !important;
-        color: #e2e8f0 !important;
-        border-color: #334155 !important;
+    body.light-mode .sidebar {
+        background: linear-gradient(180deg, #dce8f5 0%, #e8f0fb 100%) !important;
+        border-right-color: rgba(0,100,180,0.12) !important;
+        color: var(--sidebar-text) !important;
+    }
+    body.light-mode .sidebar .brand-name,
+    body.light-mode .sidebar .tenant-info strong { color: #0f1f38 !important; }
+    body.light-mode .sidebar .brand-sub,
+    body.light-mode .sidebar .muted-sm { color: #5a6e94 !important; }
+    body.light-mode .sidebar .context-box {
+        background: rgba(0,100,180,0.06) !important;
+        border-color: rgba(0,100,180,0.15) !important;
+        color: #2c4a7c !important;
+    }
+    body.light-mode .menu-group a { color: #2c4a7c !important; }
+    body.light-mode .menu-group a:hover  { background: rgba(0,119,182,0.09) !important; color: var(--accent) !important; border-color: rgba(0,119,182,0.25) !important; }
+    body.light-mode .menu-group a.active { background: rgba(0,119,182,0.13) !important; color: var(--accent) !important; border-color: rgba(0,119,182,0.35) !important; }
+
+    body.light-mode .content,
+    body.light-mode .panel,
+    body.light-mode .metric,
+    body.light-mode .table-panel,
+    body.light-mode .info-card,
+    body.light-mode .card,
+    body.light-mode .module-card,
+    body.light-mode .activity,
+    body.light-mode .ll-panel {
+        background: var(--surface) !important;
+        color: var(--text) !important;
+        border-color: var(--line) !important;
     }
 
-    body.dark-mode .card h1,
-    body.dark-mode .card h2,
-    body.dark-mode .card h3,
-    body.dark-mode .module-card h1,
-    body.dark-mode .module-card h2,
-    body.dark-mode .module-card h3,
-    body.dark-mode .activity h1,
-    body.dark-mode .activity h2,
-    body.dark-mode .activity h3,
-    body.dark-mode .content > .header h1,
-    body.dark-mode .content > .header h2,
-    body.dark-mode .content > .header h3 { color: #f1f5f9 !important; }
-
-    body.dark-mode th,
-    body.dark-mode td,
-    body.dark-mode .muted,
-    body.dark-mode .records-meta,
-    body.dark-mode .helptext,
-    body.dark-mode label,
-    body.dark-mode .meta,
-    body.dark-mode .count,
-    body.dark-mode .kpis div,
-    body.dark-mode .header p { color: #cbd5e1 !important; border-color: #334155 !important; }
-
-    body.dark-mode .action-link,
-    body.dark-mode .action-btn { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-
-    body.dark-mode .action-link.manage,
-    body.dark-mode .action-btn.manage,
-    body.dark-mode .module-card a,
-    body.dark-mode .cta,
-    body.dark-mode .btn { color: #ffffff !important; }
-
-    body.dark-mode input,
-    body.dark-mode select,
-    body.dark-mode textarea { background: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
-
-    body.dark-mode .menu-group a.active,
-    body.dark-mode .menu-group a:hover { background: #285266 !important; }
-
-    body.dark-mode .user-menu { background: #1e293b !important; border-color: #334155 !important; }
-    body.dark-mode .user-menu a,
-    body.dark-mode .user-menu button { color: #e2e8f0 !important; }
-
-    body.dark-mode .mobile-bottom-nav {
-        background: #0a1929 !important;
-        border-top-color: rgba(79, 179, 163, 0.2) !important;
+    body.light-mode h1, body.light-mode h2, body.light-mode h3,
+    body.light-mode .text-bright, body.light-mode .module-card strong {
+        color: var(--text-bright) !important;
     }
+
+    body.light-mode th    { color: var(--muted) !important; }
+    body.light-mode td    { color: var(--text) !important; border-color: rgba(0,100,180,0.08) !important; }
+    body.light-mode tbody tr:hover td { background: rgba(0,100,180,0.04) !important; }
+
+    body.light-mode .muted,
+    body.light-mode .records-meta,
+    body.light-mode .helptext,
+    body.light-mode label,
+    body.light-mode .meta { color: var(--muted) !important; }
+
+    body.light-mode input,
+    body.light-mode select,
+    body.light-mode textarea {
+        background: #ffffff !important;
+        color: var(--text) !important;
+        border-color: rgba(0,100,180,0.25) !important;
+    }
+
+    body.light-mode .module-card a,
+    body.light-mode .cta,
+    body.light-mode .action-link.manage,
+    body.light-mode .action-btn.manage {
+        background: rgba(0,119,182,0.1) !important;
+        color: var(--accent) !important;
+        border-color: rgba(0,119,182,0.28) !important;
+    }
+
+    body.light-mode .action-link,
+    body.light-mode .action-btn {
+        background: rgba(0,119,182,0.06) !important;
+        color: var(--text) !important;
+        border-color: rgba(0,100,180,0.2) !important;
+    }
+
+    body.light-mode .user-menu {
+        background: #ffffff !important;
+        border-color: rgba(0,100,180,0.18) !important;
+    }
+    body.light-mode .user-menu a,
+    body.light-mode .user-menu button { color: var(--text) !important; }
+
+    body.light-mode .mobile-bottom-nav {
+        background: #dce8f5 !important;
+        border-top-color: rgba(0,119,182,0.2) !important;
+    }
+    body.light-mode .mobile-bottom-nav a,
+    body.light-mode .mobile-bottom-nav button.mob-tab { color: #5a6e94 !important; }
+    body.light-mode .mobile-bottom-nav a.mob-active,
+    body.light-mode .mobile-bottom-nav button.mob-tab.mob-active { color: var(--accent) !important; border-top-color: var(--accent) !important; }
+
+    body.light-mode .retro-grid { background-image: radial-gradient(circle, rgba(0,100,180,0.04) 1px, transparent 1px) !important; }
+    body.light-mode .retro-crt  { background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.012) 3px, rgba(0,0,0,0.012) 4px) !important; }
+    body.light-mode .metric .value { --amber: #b56c00 !important; }
 
     /* ── Sidebar overlay ───────────────────────────────────────── */
     .sidebar-overlay {
@@ -382,21 +424,21 @@
 <script>
     /* ── Theme ─────────────────────────────────────────────────── */
     function applyTheme(mode) {
-        const isDark = mode === 'dark';
-        document.body.classList.toggle('dark-mode', isDark);
+        const isLight = mode === 'light';
+        document.body.classList.toggle('light-mode', isLight);
         const sun = document.getElementById('themeSunIcon');
         const moon = document.getElementById('themeMoonIcon');
-        if (sun) sun.style.display = isDark ? 'block' : 'none';
-        if (moon) moon.style.display = isDark ? 'none' : 'block';
+        if (sun) sun.style.display = isLight ? 'block' : 'none';
+        if (moon) moon.style.display = isLight ? 'none' : 'block';
     }
 
     function toggleTheme() {
-        const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        const next = document.body.classList.contains('light-mode') ? 'dark' : 'light';
         localStorage.setItem('dv-theme', next);
         applyTheme(next);
     }
 
-    applyTheme(localStorage.getItem('dv-theme') || 'light');
+    applyTheme(localStorage.getItem('dv-theme') || 'dark');
 
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
