@@ -2,9 +2,13 @@ services:
   - type: web
     name: di-vision-iso
     env: python
-    plan: free
+    plan: starter
     buildCommand: ./build.sh
     startCommand: python manage.py migrate && gunicorn safety_mvp.wsgi:application
+    disk:
+      name: di-vision-media
+      mountPath: /opt/render/project/src/media
+      sizeGB: 1
     envVars:
       - key: DEBUG
         value: false

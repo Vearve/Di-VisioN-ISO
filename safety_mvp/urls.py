@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.urls import path
+from django.urls import path, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve as media_serve
 from safety_mvp.ohs import views  # Use your actual app name
 
 urlpatterns = [
@@ -60,4 +61,6 @@ urlpatterns = [
     path('capa/', views.capa_center, name='capa_center'),
     path('medical/', views.medical_center, name='medical_center'),
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + [
+    re_path(r'^media/(?P<path>.*)$', media_serve, {'document_root': settings.MEDIA_ROOT}),
+]
