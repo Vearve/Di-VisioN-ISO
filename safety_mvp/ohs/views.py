@@ -1957,13 +1957,13 @@ def checklists_page(request):
 
     checklist_meta_map = {
         'Daily': {
-            'title': 'DAILY SAFETY CHECKLIST (ISO 45001)',
-            'ref': 'CHK-DAILY-ISO45001',
+            'title': 'DAILY SAFETY CHECKLIST (ISO)',
+            'ref': 'CHK-DAILY-ISO',
             'version': '01',
         },
         'Weekly': {
-            'title': 'WEEKLY SAFETY MANAGEMENT REVIEW (ISO 45001)',
-            'ref': 'CHK-WEEKLY-ISO45001',
+            'title': 'WEEKLY SAFETY MANAGEMENT REVIEW (ISO)',
+            'ref': 'CHK-WEEKLY-ISO',
             'version': '01',
         },
         'Monthly': {

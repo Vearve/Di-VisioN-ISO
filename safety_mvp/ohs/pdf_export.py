@@ -103,7 +103,7 @@ class PDFGenerator:
     def _footer(self, story):
         story.append(Spacer(1, 0.2*inch))
         foot = Table(
-            [[f'Di-VisioN ISO Toolkit  ·  ISO 45001 OHS Management  ·  {datetime.now().strftime("%Y-%m-%d %H:%M")}']],
+            [[f'Di-VisioN ISO Toolkit  ·  OHS Management  ·  {datetime.now().strftime("%Y-%m-%d %H:%M")}']],
             colWidths=[7*inch]
         )
         foot.setStyle(TableStyle([
