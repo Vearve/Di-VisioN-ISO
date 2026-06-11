@@ -421,6 +421,7 @@ def medical_center(request):
 
 
 def analytics_dashboard(request):
+    from datetime import date as _date
     current_tenant = getattr(request, 'current_tenant', None)
     current_site = getattr(request, 'current_site', None)
     available_tenants = user_tenants(request.user) if request.user.is_authenticated else []
@@ -436,7 +437,6 @@ def analytics_dashboard(request):
     else:
         snapshots = AnalyticsWarehouseDaily.objects.filter(tenant=current_tenant)
         sites = SiteProject.objects.filter(tenant=current_tenant).order_by('name')
-
         if site_id:
             snapshots = snapshots.filter(site_id=site_id)
         if start_date:
@@ -446,14 +446,101 @@ def analytics_dashboard(request):
 
     snapshots = snapshots.order_by('snapshot_date')
     chart_points = list(snapshots.values(
-        'snapshot_date',
-        'incident_count',
-        'open_capa_count',
-        'overdue_capa_count',
-        'observation_count',
-        'checklist_count',
-        'medical_due_count',
+        'snapshot_date', 'incident_count', 'open_capa_count',
+        'overdue_capa_count', 'observation_count', 'checklist_count', 'medical_due_count',
     ))
+
+    # ── Safe man-hours (from attendance records) ──────────────────
+    safe_man_hours = 0
+    if current_tenant:
+        att_qs = AttendanceRecord.objects.filter(tenant=current_tenant)
+        if site_id:
+            att_qs = att_qs.filter(site_project_id=site_id)
+        if start_date:
+            att_qs = att_qs.filter(date__gte=start_date)
+        if end_date:
+            att_qs = att_qs.filter(date__lte=end_date)
+        safe_man_hours = round(sum(
+            r.get_man_hours() for r in att_qs.only('start_time', 'end_time', 'break_duration_minutes', 'date')
+        ), 1)
+
+    # ── CAPA closure rate ─────────────────────────────────────────
+    capa_closed = capa_open_count = capa_total = 0
+    capa_closure_rate = 0
+    if current_tenant:
+        capa_qs = CAPAAction.objects.filter(tenant=current_tenant)
+        if site_id:
+            capa_qs = capa_qs.filter(site_id=site_id)
+        capa_total = capa_qs.count()
+        capa_closed = capa_qs.filter(status='closed').count()
+        capa_open_count = capa_qs.filter(status__in=['open', 'in_progress', 'pending_review']).count()
+        capa_closure_rate = round(capa_closed / capa_total * 100) if capa_total > 0 else 0
+
+    # ── Training coverage ─────────────────────────────────────────
+    total_employees = training_covered = training_coverage_pct = 0
+    if current_tenant:
+        emp_qs = Employee.objects.filter(tenant=current_tenant)
+        if site_id:
+            emp_qs = emp_qs.filter(site_id=site_id)
+        total_employees = emp_qs.count()
+        trained_ids = set(
+            TrainingMatrix.objects.filter(tenant=current_tenant)
+            .values_list('assigned_employees', flat=True)
+            .distinct()
+        )
+        if site_id:
+            trained_ids &= set(emp_qs.values_list('id', flat=True))
+        training_covered = len(trained_ids)
+        training_coverage_pct = round(training_covered / total_employees * 100) if total_employees > 0 else 0
+
+    # ── Leading vs lagging totals ─────────────────────────────────
+    leading = lagging = {}
+    if current_tenant:
+        base = dict(tenant=current_tenant)
+        s_filter = dict(site_id=site_id) if site_id else {}
+
+        checklist_total = SafetyChecklist.objects.filter(**base, **s_filter).count()
+        observation_total = Observation.objects.filter(**base, **s_filter).count()
+        toolbox_total = ToolboxTalk.objects.filter(**base, **s_filter).count()
+        training_total = TrainingMatrix.objects.filter(**base, **s_filter).count()
+
+        incident_total = Incident.objects.filter(**base, **s_filter).count()
+        capa_open_lag = CAPAAction.objects.filter(**base, **s_filter, status__in=['open', 'in_progress']).count()
+        capa_overdue_lag = CAPAAction.objects.filter(**base, **s_filter, status='overdue').count()
+        medical_due_lag = MedicalAssessment.objects.filter(
+            profile__tenant=current_tenant, valid_until__lt=_date.today()
+        ).count()
+
+        leading = {'Checklists Completed': checklist_total, 'Observations Made': observation_total,
+                   'Toolbox Talks': toolbox_total, 'Training Records': training_total}
+        lagging = {'Incidents': incident_total, 'Open CAPA': capa_open_lag,
+                   'Overdue CAPA': capa_overdue_lag, 'Medical Due': medical_due_lag}
+
+    # ── Incident heatmap by day of week ───────────────────────────
+    incident_heatmap = [0] * 7  # Mon=0 … Sun=6
+    if current_tenant:
+        inc_qs = Incident.objects.filter(tenant=current_tenant)
+        if site_id:
+            inc_qs = inc_qs.filter(site_id=site_id)
+        if start_date:
+            inc_qs = inc_qs.filter(date_reported__gte=start_date)
+        if end_date:
+            inc_qs = inc_qs.filter(date_reported__lte=end_date)
+        for d in inc_qs.values_list('date_reported', flat=True):
+            if d:
+                incident_heatmap[d.weekday()] += 1
+
+    # ── Site comparison (up to 6 sites) ──────────────────────────
+    site_comparison = []
+    if current_tenant:
+        for s in SiteProject.objects.filter(tenant=current_tenant).order_by('name')[:6]:
+            site_comparison.append({
+                'name': s.name[:14],
+                'incidents': Incident.objects.filter(tenant=current_tenant, site=s).count(),
+                'capa': CAPAAction.objects.filter(tenant=current_tenant, site=s, status__in=['open', 'in_progress']).count(),
+                'checklists': SafetyChecklist.objects.filter(tenant=current_tenant, site=s).count(),
+                'observations': Observation.objects.filter(tenant=current_tenant, site=s).count(),
+            })
 
     return render(request, 'analytics_dashboard.html', {
         'current_tenant': current_tenant,
@@ -468,6 +555,19 @@ def analytics_dashboard(request):
         'start_date': start_date or '',
         'end_date': end_date or '',
         'company_logo_url': _get_company_logo_url(current_tenant),
+        # new analytics
+        'safe_man_hours': safe_man_hours,
+        'capa_closed': capa_closed,
+        'capa_open_count': capa_open_count,
+        'capa_total': capa_total,
+        'capa_closure_rate': capa_closure_rate,
+        'total_employees': total_employees,
+        'training_covered': training_covered,
+        'training_coverage_pct': training_coverage_pct,
+        'leading': leading,
+        'lagging': lagging,
+        'incident_heatmap': incident_heatmap,
+        'site_comparison': site_comparison,
     })
 
 

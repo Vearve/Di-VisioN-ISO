@@ -147,8 +147,58 @@
         tbody tr:hover td { background: rgba(0,180,220,0.04); }
         .overflow-x { overflow-x: auto; }
 
+        /* ─── Leading / Lagging ───────────────────────────────────── */
+        .ll-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .ll-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--card-shadow); }
+        .ll-panel.leading { border-color: rgba(0,255,179,0.18); }
+        .ll-panel.lagging { border-color: rgba(255,77,109,0.18); }
+        .ll-panel h3 { margin: 0 0 14px; font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; }
+        .ll-panel.leading h3 { color: #00ffb3; }
+        .ll-panel.lagging h3 { color: #ff7c8e; }
+        .ll-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+        .ll-row:last-child { border-bottom: none; }
+        .ll-label { font-size: 0.82rem; color: var(--text); }
+        .ll-value { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; }
+        .ll-panel.leading .ll-value { color: #00ffb3; text-shadow: 0 0 8px rgba(0,255,179,0.35); }
+        .ll-panel.lagging .ll-value { color: #ff9900; text-shadow: 0 0 8px rgba(255,153,0,0.35); }
+
+        /* ─── Man-hours hero ──────────────────────────────────────── */
+        .mh-hero {
+            background: var(--surface);
+            border: 1px solid rgba(255,153,0,0.22);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 0 24px rgba(255,153,0,0.06), var(--card-shadow);
+        }
+        .mh-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: #ff9900;
+            text-shadow: 0 0 16px rgba(255,153,0,0.5), 0 0 32px rgba(255,153,0,0.18);
+            letter-spacing: 0.04em;
+            line-height: 1;
+        }
+        .mh-meta { display: flex; flex-direction: column; gap: 3px; }
+        .mh-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,153,0,0.65); font-weight: 700; }
+        .mh-sub { font-size: 0.78rem; color: var(--muted); }
+
+        /* ─── Charts grid ─────────────────────────────────────────── */
+        .chart-row { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-bottom: 14px; }
+        .chart-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+
+        /* ─── Gauge label ─────────────────────────────────────────── */
+        .gauge-wrap { position: relative; text-align: center; }
+        .gauge-center { position: absolute; top: 58%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        .gauge-pct { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700; color: #00ffb3; text-shadow: 0 0 10px rgba(0,255,179,0.4); }
+        .gauge-sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
         /* ─── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .chart-row { grid-template-columns: 1fr; } }
+        @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } .chart-row { grid-template-columns: 1fr; } .chart-trio { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 1024px) {
             .sidebar {
                 position: fixed; left: 0; top: 60px; width: 270px;
@@ -158,8 +208,8 @@
             .sidebar.drawer-open { transform: translateX(0); }
             .content { padding: 14px; }
         }
-        @media (max-width: 768px) { .summary-cards { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 480px) { .summary-cards { grid-template-columns: repeat(2, 1fr); } .sidebar { width: 80vw; } .content { padding: 10px; } }
+        @media (max-width: 768px) { .summary-cards { grid-template-columns: repeat(3, 1fr); } .ll-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 480px) { .summary-cards { grid-template-columns: repeat(2, 1fr); } .sidebar { width: 80vw; } .content { padding: 10px; } .chart-trio { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -216,47 +266,91 @@
 
         <main class="content">
             <div class="page-header">
+                <div class="retro-page-title">ANALYTICS v2.0</div>
                 <h1>Analytics Dashboard</h1>
-                <p class="muted">KPI trend analysis &mdash; {{ current_tenant.name|default:"No tenant selected" }}</p>
+                <p class="muted">KPI telemetry &mdash; {{ current_tenant.name|default:"No tenant selected" }}</p>
             </div>
 
+            <!-- Safe Man-Hours Hero -->
+            <div class="mh-hero">
+                <div>
+                    <div class="mh-label"><span class="led led-green"></span>Safe Man-Hours Logged</div>
+                    <div class="mh-num">{{ safe_man_hours|default:"0" }}</div>
+                </div>
+                <div class="mh-meta">
+                    <div class="mh-sub">From attendance records for selected filters.</div>
+                    <div class="mh-sub" style="margin-top:6px;">
+                        Training coverage: <strong style="color:#00ffb3;">{{ training_coverage_pct }}%</strong>
+                        &nbsp;&nbsp;({{ training_covered }}/{{ total_employees }} employees)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leading vs Lagging Indicators -->
+            <div class="ll-grid">
+                <div class="ll-panel leading">
+                    <h3><span class="led led-green"></span>Leading Indicators — Proactive</h3>
+                    {% for label, val in leading.items %}
+                    <div class="ll-row">
+                        <span class="ll-label">{{ label }}</span>
+                        <span class="ll-value">{{ val }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="muted" style="font-size:0.8rem;">No tenant selected.</p>
+                    {% endfor %}
+                </div>
+                <div class="ll-panel lagging">
+                    <h3><span class="led led-red"></span>Lagging Indicators — Reactive</h3>
+                    {% for label, val in lagging.items %}
+                    <div class="ll-row">
+                        <span class="ll-label">{{ label }}</span>
+                        <span class="ll-value">{{ val }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="muted" style="font-size:0.8rem;">No tenant selected.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Snapshot summary cards -->
             {% if chart_points %}
             {% with chart_points|last as latest %}
             <div class="summary-cards">
                 <div class="summary-card">
                     <div class="sc-label">Incidents</div>
-                    <div class="sc-value" style="color:#ff7c8e;">{{ latest.incident_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#ff7c8e;text-shadow:0 0 8px rgba(255,124,142,0.3);">{{ latest.incident_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
                 <div class="summary-card">
                     <div class="sc-label">Open CAPA</div>
-                    <div class="sc-value" style="color:#00d4ff;">{{ latest.open_capa_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#00d4ff;text-shadow:0 0 8px rgba(0,212,255,0.3);">{{ latest.open_capa_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
                 <div class="summary-card">
                     <div class="sc-label">Overdue CAPA</div>
-                    <div class="sc-value" style="color:#f59e0b;">{{ latest.overdue_capa_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#f59e0b;text-shadow:0 0 8px rgba(245,158,11,0.3);">{{ latest.overdue_capa_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
                 <div class="summary-card">
                     <div class="sc-label">Observations</div>
-                    <div class="sc-value" style="color:#00ffb3;">{{ latest.observation_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#00ffb3;text-shadow:0 0 8px rgba(0,255,179,0.3);">{{ latest.observation_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
                 <div class="summary-card">
                     <div class="sc-label">Medical Due</div>
-                    <div class="sc-value" style="color:#c084fc;">{{ latest.medical_due_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#c084fc;text-shadow:0 0 8px rgba(192,132,252,0.3);">{{ latest.medical_due_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
                 <div class="summary-card">
                     <div class="sc-label">Checklists</div>
-                    <div class="sc-value">{{ latest.checklist_count }}</div>
+                    <div class="sc-value" style="font-family:'JetBrains Mono',monospace;color:#ff9900;text-shadow:0 0 8px rgba(255,153,0,0.3);">{{ latest.checklist_count }}</div>
                     <div class="sc-sub">Latest snapshot</div>
                 </div>
             </div>
             {% endwith %}
             {% endif %}
 
+            <!-- Filters -->
             <div class="panel">
                 <h3>Filters</h3>
                 <form method="get" class="filters">
@@ -283,30 +377,54 @@
                 </form>
             </div>
 
+            <!-- KPI trend + CAPA closure ring -->
             <div class="chart-row">
                 <div class="panel">
                     <h3>KPI Trends Over Time</h3>
                     <canvas id="kpiTrendChart" height="180"></canvas>
                 </div>
                 <div class="panel">
-                    <h3>Latest Snapshot Breakdown</h3>
-                    <canvas id="capaDonut" height="180"></canvas>
+                    <h3>CAPA Closure Rate</h3>
+                    <div class="gauge-wrap">
+                        <canvas id="capaClosureDonut" height="200"></canvas>
+                        <div class="gauge-center">
+                            <div class="gauge-pct">{{ capa_closure_rate }}%</div>
+                            <div class="gauge-sub">{{ capa_closed }}/{{ capa_total }} closed</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Training gauge + Site radar + Incident heatmap -->
+            <div class="chart-trio">
+                <div class="panel">
+                    <h3>Training Coverage</h3>
+                    <div class="gauge-wrap">
+                        <canvas id="trainingGauge" height="160"></canvas>
+                        <div class="gauge-center" style="top:52%;">
+                            <div class="gauge-pct">{{ training_coverage_pct }}%</div>
+                            <div class="gauge-sub">{{ training_covered }}/{{ total_employees }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" style="grid-column: span 1;">
+                    <h3>Incidents by Day of Week</h3>
+                    <canvas id="incidentHeatmap" height="170"></canvas>
+                </div>
+                <div class="panel">
+                    <h3>Site Comparison</h3>
+                    <canvas id="siteRadar" height="210"></canvas>
+                </div>
+            </div>
+
+            <!-- Snapshot history table -->
             <div class="panel">
                 <h3>Snapshot History</h3>
                 <div class="overflow-x">
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Incidents</th>
-                                <th>Open CAPA</th>
-                                <th>Overdue CAPA</th>
-                                <th>Observations</th>
-                                <th>Checklists</th>
-                                <th>Medical Due</th>
+                                <th>Date</th><th>Incidents</th><th>Open CAPA</th><th>Overdue CAPA</th><th>Observations</th><th>Checklists</th><th>Medical Due</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -331,52 +449,138 @@
     </div>
 
     {{ chart_points|json_script:"kpi-points" }}
-    <script>
-        const points = JSON.parse(document.getElementById('kpi-points').textContent);
-        const labels = points.map(p => p.snapshot_date);
+    {{ incident_heatmap|json_script:"incident-heatmap" }}
+    {{ site_comparison|json_script:"site-comparison" }}
 
+    <script>
         Chart.defaults.color = '#5a8ca8';
         Chart.defaults.borderColor = 'rgba(0,180,220,0.07)';
-        Chart.defaults.font.family = 'Manrope, sans-serif';
+        Chart.defaults.font.family = "'JetBrains Mono', 'Manrope', sans-serif";
+
+        const gridColor  = 'rgba(0,180,220,0.06)';
+        const tickColor  = '#5a8ca8';
+        const axisOpts   = { grid: { color: gridColor }, ticks: { color: tickColor } };
+
+        // ── KPI trend line ──────────────────────────────────────────
+        const points = JSON.parse(document.getElementById('kpi-points').textContent);
+        const labels = points.map(p => p.snapshot_date);
 
         new Chart(document.getElementById('kpiTrendChart'), {
             type: 'line',
             data: {
                 labels,
                 datasets: [
-                    { label: 'Incidents', data: points.map(p => p.incident_count), borderColor: '#ff4d6d', backgroundColor: 'rgba(255,77,109,0.06)', tension: 0.35, pointBackgroundColor: '#ff4d6d', pointRadius: 3, fill: true },
-                    { label: 'Open CAPA', data: points.map(p => p.open_capa_count), borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.06)', tension: 0.35, pointBackgroundColor: '#00d4ff', pointRadius: 3, fill: true },
-                    { label: 'Overdue CAPA', data: points.map(p => p.overdue_capa_count), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.06)', tension: 0.35, pointBackgroundColor: '#f59e0b', pointRadius: 3, fill: true },
-                    { label: 'Medical Due', data: points.map(p => p.medical_due_count), borderColor: '#c084fc', backgroundColor: 'rgba(192,132,252,0.06)', tension: 0.35, pointBackgroundColor: '#c084fc', pointRadius: 3, fill: true },
+                    { label: 'Incidents',     data: points.map(p => p.incident_count),     borderColor: '#ff4d6d', backgroundColor: 'rgba(255,77,109,0.06)',   tension: 0.35, pointBackgroundColor: '#ff4d6d', pointRadius: 3, fill: true },
+                    { label: 'Open CAPA',     data: points.map(p => p.open_capa_count),    borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.06)',    tension: 0.35, pointBackgroundColor: '#00d4ff', pointRadius: 3, fill: true },
+                    { label: 'Overdue CAPA',  data: points.map(p => p.overdue_capa_count), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.06)',   tension: 0.35, pointBackgroundColor: '#f59e0b', pointRadius: 3, fill: true },
+                    { label: 'Medical Due',   data: points.map(p => p.medical_due_count),  borderColor: '#c084fc', backgroundColor: 'rgba(192,132,252,0.06)', tension: 0.35, pointBackgroundColor: '#c084fc', pointRadius: 3, fill: true },
                 ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom', labels: { color: '#5a8ca8', boxWidth: 11, padding: 16 } } },
-                scales: {
-                    x: { grid: { color: 'rgba(0,180,220,0.06)' }, ticks: { color: '#5a8ca8', maxTicksLimit: 10 } },
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,180,220,0.06)' }, ticks: { color: '#5a8ca8' } }
-                }
+                plugins: { legend: { position: 'bottom', labels: { color: tickColor, boxWidth: 10, padding: 14 } } },
+                scales: { x: { ...axisOpts, ticks: { ...axisOpts.ticks, maxTicksLimit: 10 } }, y: { ...axisOpts, beginAtZero: true } }
             }
         });
 
-        const latest = points.length ? points[points.length - 1] : null;
-        new Chart(document.getElementById('capaDonut'), {
+        // ── CAPA closure ring ───────────────────────────────────────
+        const capaData = [{{ capa_closed }}, {{ capa_open_count }}, Math.max(0, {{ capa_total }} - {{ capa_closed }} - {{ capa_open_count }})];
+        new Chart(document.getElementById('capaClosureDonut'), {
             type: 'doughnut',
             data: {
-                labels: ['Open CAPA', 'Overdue CAPA', 'Medical Due', 'Checklists'],
+                labels: ['Closed', 'Open / In Progress', 'Pending Review'],
                 datasets: [{
-                    data: latest ? [latest.open_capa_count, latest.overdue_capa_count, latest.medical_due_count, latest.checklist_count] : [1,1,1,1],
-                    backgroundColor: ['rgba(0,212,255,0.7)','rgba(245,158,11,0.7)','rgba(192,132,252,0.7)','rgba(0,255,179,0.7)'],
-                    borderColor: ['#00d4ff','#f59e0b','#c084fc','#00ffb3'],
+                    data: capaData,
+                    backgroundColor: ['rgba(0,255,179,0.72)', 'rgba(255,153,0,0.65)', 'rgba(0,212,255,0.45)'],
+                    borderColor:     ['#00ffb3', '#ff9900', '#00d4ff'],
                     borderWidth: 1.5,
                     hoverOffset: 6,
                 }]
             },
             options: {
                 responsive: true,
-                cutout: '68%',
-                plugins: { legend: { position: 'bottom', labels: { color: '#5a8ca8', boxWidth: 11, padding: 14 } } }
+                cutout: '70%',
+                plugins: { legend: { position: 'bottom', labels: { color: tickColor, boxWidth: 10, padding: 12 } } }
+            }
+        });
+
+        // ── Training coverage gauge (half-donut) ────────────────────
+        const tCov = {{ training_coverage_pct }};
+        new Chart(document.getElementById('trainingGauge'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Covered', 'Uncovered'],
+                datasets: [{
+                    data: [tCov, Math.max(0, 100 - tCov)],
+                    backgroundColor: ['rgba(0,255,179,0.7)', 'rgba(0,255,179,0.08)'],
+                    borderColor:     ['#00ffb3', 'rgba(0,255,179,0.12)'],
+                    borderWidth: 1.5,
+                }]
+            },
+            options: {
+                circumference: 180,
+                rotation: -90,
+                cutout: '74%',
+                responsive: true,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
+        });
+
+        // ── Incident heatmap (bar by weekday) ───────────────────────
+        const heatmap = JSON.parse(document.getElementById('incident-heatmap').textContent);
+        const maxH = Math.max(1, ...heatmap);
+        new Chart(document.getElementById('incidentHeatmap'), {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Incidents',
+                    data: heatmap,
+                    backgroundColor: heatmap.map(v => v === 0 ? 'rgba(255,77,109,0.08)' : `rgba(255,77,109,${(0.2 + (v/maxH)*0.7).toFixed(2)})`),
+                    borderColor: '#ff4d6d',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ...axisOpts },
+                    y: { ...axisOpts, beginAtZero: true, ticks: { ...axisOpts.ticks, stepSize: 1 } }
+                }
+            }
+        });
+
+        // ── Site comparison radar ───────────────────────────────────
+        const siteData = JSON.parse(document.getElementById('site-comparison').textContent);
+        const radarColors = ['#00d4ff','#00ffb3','#ff9900','#ff4d6d','#c084fc','#f59e0b'];
+        new Chart(document.getElementById('siteRadar'), {
+            type: 'radar',
+            data: {
+                labels: ['Incidents', 'Open CAPA', 'Checklists', 'Observations'],
+                datasets: siteData.map((s, i) => ({
+                    label: s.name,
+                    data: [s.incidents, s.capa, Math.min(s.checklists, 50), s.observations],
+                    borderColor: radarColors[i % radarColors.length],
+                    backgroundColor: radarColors[i % radarColors.length].replace(')', ',0.08)').replace('rgb', 'rgba'),
+                    pointBackgroundColor: radarColors[i % radarColors.length],
+                    pointRadius: 3,
+                    borderWidth: 1.5,
+                }))
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,180,220,0.1)' },
+                        ticks: { color: tickColor, backdropColor: 'transparent', font: { size: 9 } },
+                        pointLabels: { color: '#a8ccdb', font: { size: 10 } },
+                        angleLines: { color: 'rgba(0,180,220,0.08)' },
+                    }
+                },
+                plugins: { legend: { position: 'bottom', labels: { color: tickColor, boxWidth: 9, padding: 10, font: { size: 10 } } } }
             }
         });
     </script>
