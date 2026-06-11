@@ -810,9 +810,9 @@ def _module_page(
             if current_site and hasattr(instance, 'site_id'):
                 instance.site = current_site
 
-            for field in (auto_user_fields or []):
-                if hasattr(instance, field):
-                    setattr(instance, field, request.user)
+            if request.user.is_authenticated:
+                for field in (auto_user_fields or []):
+                    setattr(instance, f'{field}_id', request.user.pk)
 
             instance.save()
             form.save_m2m()
