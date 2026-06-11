@@ -80,6 +80,10 @@ class TenantScopedModelForm(forms.ModelForm):
             self.fields['assigned_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
             self.fields['assigned_employees'].widget.attrs.setdefault('data-placeholder', 'Search employees...')
 
+        if 'attendee_employees' in self.fields:
+            self.fields['attendee_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
+            self.fields['attendee_employees'].widget.attrs.setdefault('data-placeholder', 'Search employees...')
+
         if 'profile' in self.fields:
             self.fields['profile'].queryset = MedicalProfile.objects.filter(tenant=tenant).order_by('employee__name')
 
@@ -187,7 +191,11 @@ class ProjectPresetForm(TenantScopedModelForm):
 class ToolboxTalkForm(TenantScopedModelForm):
     class Meta:
         model = ToolboxTalk
-        exclude = ('tenant', 'created_at', 'conducted_by')
+        exclude = ('tenant', 'created_at', 'conducted_by', 'attendance_count')
+        labels = {
+            'attendee_employees': 'Attendees (select from employee register)',
+            'attendees': 'Additional attendees (not in register)',
+        }
 
 
 class EmployeeForm(TenantScopedModelForm):

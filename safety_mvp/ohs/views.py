@@ -1923,6 +1923,10 @@ def checklists_page(request):
 
 
 def toolbox_talks_page(request):
+    def _sync_attendance(request, instance):
+        count = instance.attendee_employees.count()
+        ToolboxTalk.objects.filter(pk=instance.pk).update(attendance_count=count)
+
     return _module_page(
         request,
         model=ToolboxTalk,
@@ -1931,6 +1935,7 @@ def toolbox_talks_page(request):
         description='Plan and record toolbox talks, hazards discussed, agreed controls, attendance and follow-ups.',
         route_name='toolbox_talks_page',
         auto_user_fields=['conducted_by'],
+        post_save_callback=_sync_attendance,
         list_fields=[
             ('title', 'Title'),
             ('talk_date', 'Talk Date'),
@@ -1942,7 +1947,7 @@ def toolbox_talks_page(request):
         form_sections=[
             ('Talk Header', ['site', 'title', 'talk_date', 'facilitator_name', 'department', 'work_group']),
             ('Topic and Risk Discussion', ['topic_details', 'hazards_discussed', 'controls_agreed']),
-            ('Attendance', ['attendance_count', 'attendees']),
+            ('Attendance', ['attendee_employees', 'attendees']),
             ('Actions and Follow-up', ['action_items', 'follow_up_required', 'follow_up_owner', 'follow_up_due_date']),
             ('Evidence', ['toolbox_file']),
         ],
