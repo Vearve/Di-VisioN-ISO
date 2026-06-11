@@ -9,6 +9,9 @@ from .models import (
     Contractor,
     Document,
     Employee,
+    EnergyWaterConsumption,
+    EnvironmentalAspect,
+    EnvironmentalObjective,
     FLRA,
     FRA,
     Incident,
@@ -23,11 +26,13 @@ from .models import (
     SafetyChecklist,
     ScheduleItem,
     SiteProject,
+    SpillReleaseIncident,
     TenantPreset,
     TenantMembership,
     ToolboxTalk,
     MonthlySiteHealthReport,
     TrainingMatrix,
+    WasteManagementLog,
 )
 
 
@@ -67,6 +72,7 @@ class TenantScopedModelForm(forms.ModelForm):
             'employee',
             'assessor',
             'manager',
+            'responsible_person',
         ]
         for field in user_fields:
             if field in self.fields:
@@ -299,3 +305,33 @@ class AttendanceRecordForm(TenantScopedModelForm):
         model = AttendanceRecord
         exclude = ('tenant',)
         fields = ('site_project', 'employee', 'date', 'start_time', 'end_time', 'break_duration_minutes', 'notes')
+
+
+class EnvironmentalAspectForm(TenantScopedModelForm):
+    class Meta:
+        model = EnvironmentalAspect
+        exclude = ('tenant', 'created_at', 'updated_at')
+
+
+class WasteManagementLogForm(TenantScopedModelForm):
+    class Meta:
+        model = WasteManagementLog
+        exclude = ('tenant', 'recorded_by')
+
+
+class SpillReleaseIncidentForm(TenantScopedModelForm):
+    class Meta:
+        model = SpillReleaseIncident
+        exclude = ('tenant', 'reported_by')
+
+
+class EnvironmentalObjectiveForm(TenantScopedModelForm):
+    class Meta:
+        model = EnvironmentalObjective
+        exclude = ('tenant', 'created_at', 'updated_at')
+
+
+class EnergyWaterConsumptionForm(TenantScopedModelForm):
+    class Meta:
+        model = EnergyWaterConsumption
+        exclude = ('tenant', 'recorded_by')

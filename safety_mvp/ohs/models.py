@@ -1398,3 +1398,184 @@ class MonthlySiteHealthReport(models.Model):
     def __str__(self):
         month_name = dict(self._meta.get_field('report_month').choices).get(self.report_month, str(self.report_month))
         return f"{self.site_project.name} {month_name} {self.report_year}"
+
+
+# ─── EMS — ISO 14001 Environmental Management System ──────────────────────────
+
+class EnvironmentalAspect(models.Model):
+    IMPACT_TYPE_CHOICES = [
+        ('air', 'Air Quality / Emissions'),
+        ('water', 'Water Quality / Discharge'),
+        ('land', 'Land Contamination'),
+        ('waste', 'Waste Generation'),
+        ('energy', 'Energy Consumption'),
+        ('noise', 'Noise Pollution'),
+        ('biodiversity', 'Biodiversity Impact'),
+        ('community', 'Community Impact'),
+    ]
+    SIGNIFICANCE_CHOICES = [
+        ('significant', 'Significant'),
+        ('moderate', 'Moderate'),
+        ('minor', 'Minor'),
+    ]
+    CONDITION_CHOICES = [
+        ('normal', 'Normal Operations'),
+        ('abnormal', 'Abnormal Operations'),
+        ('emergency', 'Emergency Conditions'),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='environmental_aspects')
+    site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='environmental_aspects')
+    activity = models.CharField(max_length=255)
+    aspect = models.CharField(max_length=255, help_text='The environmental aspect (e.g. fuel combustion)')
+    potential_impact = models.CharField(max_length=255, help_text='The potential environmental impact')
+    impact_type = models.CharField(max_length=20, choices=IMPACT_TYPE_CHOICES)
+    operating_condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='normal')
+    significance = models.CharField(max_length=20, choices=SIGNIFICANCE_CHOICES, default='moderate')
+    control_measure = models.TextField(blank=True)
+    legal_requirement = models.TextField(blank=True)
+    monitoring_required = models.BooleanField(default=False)
+    review_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f'{self.activity} — {self.aspect}'
+
+
+class WasteManagementLog(models.Model):
+    WASTE_TYPE_CHOICES = [
+        ('general', 'General Waste'),
+        ('hazardous', 'Hazardous Waste'),
+        ('chemical', 'Chemical Waste'),
+        ('medical', 'Medical / Biological Waste'),
+        ('electronic', 'E-Waste / Electronic'),
+        ('construction', 'Construction / Demolition Debris'),
+        ('recyclable', 'Recyclable Material'),
+        ('organic', 'Organic / Food Waste'),
+    ]
+    DISPOSAL_CHOICES = [
+        ('landfill', 'Landfill'),
+        ('recycling', 'Recycling Facility'),
+        ('incineration', 'Incineration'),
+        ('licensed_disposal', 'Licensed Disposal Contractor'),
+        ('reuse', 'Reuse / Repurpose'),
+        ('composting', 'Composting'),
+        ('other', 'Other'),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='waste_logs')
+    site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='waste_logs')
+    log_date = models.DateField(default=date.today)
+    waste_type = models.CharField(max_length=20, choices=WASTE_TYPE_CHOICES)
+    description = models.CharField(max_length=255)
+    quantity_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    disposal_method = models.CharField(max_length=20, choices=DISPOSAL_CHOICES)
+    disposal_contractor = models.CharField(max_length=255, blank=True)
+    manifest_number = models.CharField(max_length=100, blank=True)
+    recorded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='waste_logs_recorded')
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ('-log_date',)
+
+    def __str__(self):
+        return f'{self.get_waste_type_display()} — {self.log_date}'
+
+
+class SpillReleaseIncident(models.Model):
+    SEVERITY_CHOICES = [
+        ('minor', 'Minor — Contained on site, no off-site impact'),
+        ('moderate', 'Moderate — Potential off-site impact'),
+        ('major', 'Major — Off-site impact, regulatory notification required'),
+    ]
+    SUBSTANCE_CHOICES = [
+        ('fuel_oil', 'Fuel / Oil'),
+        ('chemical', 'Chemical / Reagent'),
+        ('sewage', 'Sewage / Wastewater'),
+        ('stormwater', 'Contaminated Stormwater Runoff'),
+        ('dust', 'Fugitive Dust'),
+        ('other', 'Other'),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='spill_incidents')
+    site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='spill_incidents')
+    incident_date = models.DateTimeField()
+    substance = models.CharField(max_length=20, choices=SUBSTANCE_CHOICES)
+    quantity_litres = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
+    location_description = models.TextField()
+    cause = models.TextField(blank=True)
+    immediate_action = models.TextField(blank=True)
+    regulatory_notification_required = models.BooleanField(default=False)
+    regulatory_notification_sent = models.BooleanField(default=False)
+    cleanup_completed = models.BooleanField(default=False)
+    cleanup_date = models.DateField(null=True, blank=True)
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='spills_reported')
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ('-incident_date',)
+
+    def __str__(self):
+        return f'{self.get_severity_display()} — {self.incident_date.strftime("%Y-%m-%d")}'
+
+
+class EnvironmentalObjective(models.Model):
+    STATUS_CHOICES = [
+        ('on_track', 'On Track'),
+        ('at_risk', 'At Risk'),
+        ('behind', 'Behind Schedule'),
+        ('achieved', 'Achieved'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='env_objectives')
+    site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='env_objectives')
+    title = models.CharField(max_length=255)
+    target_description = models.TextField()
+    indicator = models.CharField(max_length=255, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='on_track')
+    responsible_person = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='env_objectives_owned')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return self.title
+
+
+class EnergyWaterConsumption(models.Model):
+    RESOURCE_CHOICES = [
+        ('electricity_kwh', 'Electricity (kWh)'),
+        ('diesel_litres', 'Diesel (Litres)'),
+        ('water_m3', 'Water (m³)'),
+        ('lpg_kg', 'LPG (kg)'),
+        ('petrol_litres', 'Petrol (Litres)'),
+        ('natural_gas_m3', 'Natural Gas (m³)'),
+        ('other', 'Other'),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='energy_consumption')
+    site = models.ForeignKey(SiteProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='energy_consumption')
+    reading_date = models.DateField(default=date.today)
+    resource_type = models.CharField(max_length=30, choices=RESOURCE_CHOICES)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    meter_reference = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='energy_readings_recorded')
+
+    class Meta:
+        ordering = ('-reading_date',)
+
+    def __str__(self):
+        return f'{self.get_resource_type_display()} — {self.reading_date}'

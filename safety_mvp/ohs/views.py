@@ -13,7 +13,7 @@ from django.db.models import Q, Sum
 
 logger = logging.getLogger(__name__)
 from .pdf_export import PDFGenerator
-from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport
+from .models import Incident, JSA, JSAStep, FRA, FLRA, Document, Material, Observation, PTOChemicalHazardousSubstance, CCVCriticalControlVerification, SafetyChecklist, ToolboxTalk, Certification, Contractor, Employee, Objective, TrainingMatrix, ScheduleItem, Reminder, CAPAAction, MedicalProfile, MedicalAssessment, AuditLog, KPIDailySnapshot, AnalyticsWarehouseDaily, SiteProject, SiteProjectAttachment, TenantPreset, AttendanceRecord, ProjectPreset, MonthlySiteHealthReport, EnvironmentalAspect, WasteManagementLog, SpillReleaseIncident, EnvironmentalObjective, EnergyWaterConsumption
 from .tenant_context import has_minimum_role, user_role_for_tenant, user_tenants
 from .forms import (
     AttendanceRecordForm,
@@ -23,6 +23,9 @@ from .forms import (
     ContractorForm,
     DocumentForm,
     EmployeeForm,
+    EnergyWaterConsumptionForm,
+    EnvironmentalAspectForm,
+    EnvironmentalObjectiveForm,
     FLRAForm,
     FRAForm,
     IncidentForm,
@@ -37,10 +40,12 @@ from .forms import (
     SafetyChecklistForm,
     ScheduleItemForm,
     SiteProjectForm,
+    SpillReleaseIncidentForm,
     TenantPresetForm,
     ToolboxTalkForm,
     TrainingMatrixForm,
     MonthlySiteHealthReportForm,
+    WasteManagementLogForm,
 )
 
 TARGETS = {
@@ -651,6 +656,14 @@ def site_manage_page(request, site_id):
         ('Documents', '/app/documents/', Document.objects.filter(tenant=current_tenant, site=site).count()),
     ]
 
+    ems_links = [
+        ('Env. Aspects Register', '/app/ems/aspects/', EnvironmentalAspect.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Waste Management Log', '/app/ems/waste/', WasteManagementLog.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Spill & Release Incidents', '/app/ems/spills/', SpillReleaseIncident.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Environmental Objectives', '/app/ems/objectives/', EnvironmentalObjective.objects.filter(tenant=current_tenant, site=site).count()),
+        ('Energy & Water Consumption', '/app/ems/energy/', EnergyWaterConsumption.objects.filter(tenant=current_tenant, site=site).count()),
+    ]
+
     recent_activity = AuditLog.objects.filter(tenant=current_tenant, site=site).order_by('-created_at')[:12]
     
     # Calculate KPI metrics for the last 30 days
@@ -659,6 +672,7 @@ def site_manage_page(request, site_id):
     return render(request, 'site_manage.html', {
         'site': site,
         'module_links': module_links,
+        'ems_links': ems_links,
         'kpi_metrics': kpi_metrics,
         'current_tenant': current_tenant,
         'current_site': site,
@@ -1723,8 +1737,32 @@ def ccv_page(request):
 
 def checklists_page(request):
     checklist_field_map = {
-        'Daily': ['site', 'inspection_area', 'checklist_title', 'ppe_inspection', 'fire_safety_check', 'housekeeping_checked', 'operational_status'],
-        'Weekly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'emergency_exits_clear', 'safety_signage_visible', 'operational_status'],
+        'Daily': [
+            'site', 'checklist_title', 'inspection_area', 'date_completed',
+            'ppe_inspection', 'fire_safety_check', 'housekeeping_checked', 'emergency_exits_clear', 'safety_signage_visible',
+            'step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments',
+            'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments',
+            'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments',
+            'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments',
+            'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments',
+            'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments',
+            'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments',
+            'step_15_compliant', 'step_15_comments',
+            'findings', 'actions_required', 'operational_status', 'comments',
+        ],
+        'Weekly': [
+            'site', 'checklist_title', 'inspection_area', 'date_completed',
+            'ppe_inspection', 'fire_safety_check', 'first_aid_kit_stocked', 'emergency_exits_clear', 'safety_signage_visible', 'housekeeping_checked', 'equipment_condition',
+            'step_01_compliant', 'step_01_comments', 'step_02_compliant', 'step_02_comments',
+            'step_03_compliant', 'step_03_comments', 'step_04_compliant', 'step_04_comments',
+            'step_05_compliant', 'step_05_comments', 'step_06_compliant', 'step_06_comments',
+            'step_07_compliant', 'step_07_comments', 'step_08_compliant', 'step_08_comments',
+            'step_09_compliant', 'step_09_comments', 'step_10_compliant', 'step_10_comments',
+            'step_11_compliant', 'step_11_comments', 'step_12_compliant', 'step_12_comments',
+            'step_13_compliant', 'step_13_comments', 'step_14_compliant', 'step_14_comments',
+            'step_15_compliant', 'step_15_comments',
+            'findings', 'actions_required', 'operational_status', 'comments',
+        ],
         'Monthly': ['site', 'inspection_area', 'equipment_id', 'equipment_condition', 'first_aid_kit_stocked', 'actions_required', 'next_due_date'],
         'Mobile Equipment': ['site', 'checklist_title', 'equipment_id', 'inspection_area', 'operator_name', 'operator_signature', 'deviation_problem', 'deviation_reported_to', 'deviation_action_taken', 'comments', 'operational_status'],
         'Lighting Tower': ['site', 'drill_rig_number', 'lighting_tower_number', 'serial_number', 'step_01_compliant', 'step_29_compliant', 'operational_status'],
@@ -1735,6 +1773,40 @@ def checklists_page(request):
     }
 
     checklist_step_map = {
+        'Daily': [
+            'Permit to Work (PTW) reviewed and signed for all high-risk activities.',
+            'Hazard identification (HIRA) completed for the work area.',
+            'Any near-miss or incident occurred / reported today?',
+            'Toolbox talk conducted at shift start.',
+            'Emergency equipment (fire extinguishers, first aid kit) inspected and serviceable.',
+            'Visitor / contractor site induction completed where applicable.',
+            'Area risk assessment reviewed and communicated to all team members.',
+            'Shift handover safety briefing completed.',
+            'Communication channels (radio / phone) confirmed operational.',
+            'Environmental conditions (weather, visibility, ground) assessed and acceptable.',
+            'Traffic management plan in place and communicated.',
+            'Isolation / Lockout-Tagout (LOTO) procedures applied where required.',
+            'Working-at-height equipment inspected and in service.',
+            'Confined space entry permit in place where required.',
+            'End-of-day site secured and equipment properly stored.',
+        ],
+        'Weekly': [
+            'Management / supervisor safety walk conducted and documented.',
+            'Legal and compliance register reviewed for any updates.',
+            'CAPA actions reviewed and progress updated.',
+            "Previous week's findings and action items closed out.",
+            'Safe man-hours for the week logged and verified.',
+            'Weekly toolbox talk topic selected, material prepared, and delivered.',
+            'Training and competency records reviewed and updated.',
+            'Incident and near-miss register reviewed and trend analysed.',
+            'Contractor safety files reviewed and current.',
+            'Emergency response drill scheduled or conducted.',
+            'Equipment maintenance records checked and current.',
+            'Environmental compliance checks completed.',
+            'Safety notice board updated with current information.',
+            'OHS objectives and KPI data collected and reviewed.',
+            'High-risk activities for the following week identified and planned.',
+        ],
         'Mobile Equipment': [
             'Body work and general condition.',
             '*Wheels (tyres/rims).',
@@ -1880,13 +1952,13 @@ def checklists_page(request):
 
     checklist_meta_map = {
         'Daily': {
-            'title': 'DAILY SAFETY CHECKLIST',
-            'ref': 'CHK-DAILY',
+            'title': 'DAILY SAFETY CHECKLIST (ISO 45001)',
+            'ref': 'CHK-DAILY-ISO45001',
             'version': '01',
         },
         'Weekly': {
-            'title': 'WEEKLY SAFETY CHECKLIST',
-            'ref': 'CHK-WEEKLY',
+            'title': 'WEEKLY SAFETY MANAGEMENT REVIEW (ISO 45001)',
+            'ref': 'CHK-WEEKLY-ISO45001',
             'version': '01',
         },
         'Monthly': {
@@ -2353,5 +2425,125 @@ def medical_assessments_page(request):
         ],
         form_sections=[
             ('Assessment Record', ['profile', 'exam_type', 'assessment_date', 'valid_until', 'outcome', 'provider', 'report_file', 'notes']),
+        ],
+    )
+
+
+# ─── EMS — ISO 14001 Module Views ─────────────────────────────────────────────
+
+def ems_aspects_page(request):
+    return _module_page(
+        request,
+        model=EnvironmentalAspect,
+        form_class=EnvironmentalAspectForm,
+        title='Environmental Aspects Register',
+        description='Identify and evaluate environmental aspects and their significance as required by ISO 14001 Clause 6.1.2.',
+        route_name='ems_aspects_page',
+        list_fields=[
+            ('activity', 'Activity'),
+            ('aspect', 'Aspect'),
+            ('impact_type', 'Impact Type'),
+            ('significance', 'Significance'),
+            ('operating_condition', 'Condition'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Aspect Identification', ['site', 'activity', 'aspect', 'potential_impact', 'impact_type', 'operating_condition', 'significance']),
+            ('Controls and Compliance', ['control_measure', 'legal_requirement', 'monitoring_required', 'review_date', 'notes']),
+        ],
+    )
+
+
+def ems_waste_page(request):
+    return _module_page(
+        request,
+        model=WasteManagementLog,
+        form_class=WasteManagementLogForm,
+        title='Waste Management Log',
+        description='Track waste generation, disposal methods, and contractor manifests aligned with ISO 14001 Clause 8.1.',
+        route_name='ems_waste_page',
+        auto_user_fields=['recorded_by'],
+        list_fields=[
+            ('log_date', 'Date'),
+            ('waste_type', 'Waste Type'),
+            ('description', 'Description'),
+            ('quantity_kg', 'Quantity (kg)'),
+            ('disposal_method', 'Disposal Method'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Waste Record', ['site', 'log_date', 'waste_type', 'description', 'quantity_kg', 'disposal_method']),
+            ('Contractor & Tracking', ['disposal_contractor', 'manifest_number', 'notes']),
+        ],
+    )
+
+
+def ems_spills_page(request):
+    return _module_page(
+        request,
+        model=SpillReleaseIncident,
+        form_class=SpillReleaseIncidentForm,
+        title='Spill & Release Incidents',
+        description='Log environmental spills and releases for investigation, cleanup tracking, and regulatory reporting per ISO 14001 Clause 8.2.',
+        route_name='ems_spills_page',
+        auto_user_fields=['reported_by'],
+        list_fields=[
+            ('incident_date', 'Date'),
+            ('substance', 'Substance'),
+            ('severity', 'Severity'),
+            ('cleanup_completed', 'Cleaned Up'),
+            ('regulatory_notification_required', 'Reg. Notification'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Incident Details', ['site', 'incident_date', 'substance', 'quantity_litres', 'severity', 'location_description']),
+            ('Response & Follow-up', ['cause', 'immediate_action', 'cleanup_completed', 'cleanup_date']),
+            ('Regulatory', ['regulatory_notification_required', 'regulatory_notification_sent', 'notes']),
+        ],
+    )
+
+
+def ems_objectives_page(request):
+    return _module_page(
+        request,
+        model=EnvironmentalObjective,
+        form_class=EnvironmentalObjectiveForm,
+        title='Environmental Objectives',
+        description='Set and monitor measurable environmental objectives and targets per ISO 14001 Clause 6.2.',
+        route_name='ems_objectives_page',
+        list_fields=[
+            ('title', 'Objective'),
+            ('indicator', 'Indicator'),
+            ('status', 'Status'),
+            ('due_date', 'Due Date'),
+            ('responsible_person', 'Responsible'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Objective', ['site', 'title', 'target_description', 'indicator', 'due_date']),
+            ('Progress', ['status', 'responsible_person', 'notes']),
+        ],
+    )
+
+
+def ems_energy_page(request):
+    return _module_page(
+        request,
+        model=EnergyWaterConsumption,
+        form_class=EnergyWaterConsumptionForm,
+        title='Energy & Water Consumption',
+        description='Record energy and water meter readings to monitor consumption trends and support ISO 14001 Clause 6.2 environmental targets.',
+        route_name='ems_energy_page',
+        auto_user_fields=['recorded_by'],
+        list_fields=[
+            ('reading_date', 'Date'),
+            ('resource_type', 'Resource'),
+            ('quantity', 'Quantity'),
+            ('unit_cost', 'Unit Cost'),
+            ('meter_reference', 'Meter Ref'),
+            ('site', 'Site'),
+        ],
+        form_sections=[
+            ('Reading', ['site', 'reading_date', 'resource_type', 'quantity', 'unit_cost', 'meter_reference', 'notes']),
         ],
     )
