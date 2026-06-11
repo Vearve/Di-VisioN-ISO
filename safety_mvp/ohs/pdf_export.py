@@ -761,7 +761,7 @@ class PDFGenerator:
         ]))
         story.append(t)
 
-    def generate_checklists_report(self, checklists, site_name=""):
+    def generate_checklists_report(self, checklists, site_name="", step_map=None):
         from reportlab.platypus import Paragraph, Spacer, Table
         from reportlab.platypus.tables import TableStyle
         from reportlab.lib import colors
@@ -808,17 +808,50 @@ class PDFGenerator:
                 basic_data.append([label, "Pass" if val else "Fail"])
             self._std_table(story, basic_data, [4.5*inch, 1*inch])
             story.append(Spacer(1, 0.07*inch))
-            step_rows = [["Step", "Result", "Comments"]]
+            step_labels = (step_map or {}).get(cl.checklist_type, [])
+            step_rows = [["#", "Inspection Item / Question", "Result", "Comments"]]
+            fail_row_indices = []
             for i in range(1, 48):
                 sk = f"{i:02d}"
                 compliant = getattr(cl, f"step_{sk}_compliant", None)
                 if compliant is None:
                     continue
+                label = step_labels[i - 1] if i - 1 < len(step_labels) else f"Step {i}"
                 comment = getattr(cl, f"step_{sk}_comments", "") or ""
-                step_rows.append([f"Step {i}", "Pass" if compliant else "Fail",
-                                  comment[:60] + ("..." if len(comment) > 60 else "")])
+                result_text = "Pass" if compliant else "FAIL"
+                if not compliant:
+                    fail_row_indices.append(len(step_rows))
+                step_rows.append([
+                    str(i),
+                    label,
+                    result_text,
+                    comment[:80] + ("…" if len(comment) > 80 else ""),
+                ])
             if len(step_rows) > 1:
-                self._std_table(story, step_rows, [0.7*inch, 0.9*inch, 5*inch])
+                col_w = [0.35*inch, 3.9*inch, 0.65*inch, 1.8*inch]
+                tbl = Table(step_rows, colWidths=col_w)
+                style_cmds = [
+                    ("BACKGROUND",  (0, 0), (-1, 0),  colors.HexColor("#1e5f8e")),
+                    ("TEXTCOLOR",   (0, 0), (-1, 0),  colors.white),
+                    ("FONTNAME",    (0, 0), (-1, 0),  "Helvetica-Bold"),
+                    ("FONTSIZE",    (0, 0), (-1, -1), 8),
+                    ("GRID",        (0, 0), (-1, -1), 0.4, colors.HexColor("#cbd5e1")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                    ("VALIGN",      (0, 0), (-1, -1), "TOP"),
+                    ("TOPPADDING",  (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("FONTNAME",    (2, 1), (2, -1),  "Helvetica-Bold"),
+                    ("ALIGN",       (0, 0), (0, -1),  "CENTER"),
+                    ("ALIGN",       (2, 0), (2, -1),  "CENTER"),
+                ]
+                for fi in fail_row_indices:
+                    style_cmds += [
+                        ("BACKGROUND", (2, fi), (2, fi), colors.HexColor("#fee2e2")),
+                        ("TEXTCOLOR",  (2, fi), (2, fi), colors.HexColor("#b91c1c")),
+                    ]
+                tbl.setStyle(TableStyle(style_cmds))
+                story.append(tbl)
                 story.append(Spacer(1, 0.07*inch))
             if cl.findings or cl.actions_required:
                 story.append(Paragraph(f"Findings: {cl.findings or '-'}", self.styles["CustomNormal"]))
