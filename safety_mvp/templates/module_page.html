@@ -154,8 +154,8 @@
         textarea { min-height: 76px; }
         select option { background: #09152a; }
 
-        /* ── Employee searchable multi-select ───────────────────── */
-        .emp-select-wrap { margin-bottom: 2px; }
+        /* ── Employee searchable checkbox list ───────────────────── */
+        .emp-cb-wrap { margin-bottom: 2px; }
         .emp-filter {
             width: 100%; padding: 7px 10px; margin-bottom: 4px;
             background: rgba(3,8,20,0.6); border: 1px solid rgba(79,179,163,0.15);
@@ -163,14 +163,19 @@
         }
         .emp-filter:focus { outline: none; border-color: #4fb3a3; }
         .emp-filter::placeholder { color: #2a4a5a; }
-        .emp-select {
-            width: 100%; background: rgba(3,8,20,0.65);
+        .emp-cb-list {
+            list-style: none; margin: 0; padding: 6px;
+            max-height: 180px; overflow-y: auto;
+            background: rgba(3,8,20,0.65);
             border: 1px solid rgba(79,179,163,0.18); border-radius: 8px;
-            color: #c8e8f8; font-family: inherit; font-size: 0.88rem;
-            padding: 4px;
         }
-        .emp-select option { padding: 5px 8px; background: #0a1929; cursor: pointer; }
-        .emp-select option:checked { background: rgba(79,179,163,0.22); color: #4fb3a3; }
+        .emp-cb-list li { padding: 4px 6px; border-radius: 5px; }
+        .emp-cb-list li:hover { background: rgba(79,179,163,0.08); }
+        .emp-cb-list label {
+            display: flex; align-items: center; gap: 8px;
+            color: #c8e8f8; font-size: 0.86rem; cursor: pointer;
+        }
+        .emp-cb-list input[type="checkbox"] { accent-color: #4fb3a3; cursor: pointer; flex-shrink: 0; }
         .emp-hint { font-size: 0.67rem; color: #5a8ca8; margin-top: 3px; }
 
         .btn {
@@ -906,29 +911,29 @@
     {% endif %}
 
     <script>
-    /* ── Employee select: inject filter input above each .emp-select ── */
+    /* ── Employee checkbox list: inject filter input above each .emp-cb-list ── */
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.emp-select').forEach(function (sel) {
+        document.querySelectorAll('.emp-cb-list').forEach(function (list) {
             const wrap = document.createElement('div');
-            wrap.className = 'emp-select-wrap';
-            sel.parentNode.insertBefore(wrap, sel);
+            wrap.className = 'emp-cb-wrap';
+            list.parentNode.insertBefore(wrap, list);
 
             const inp = document.createElement('input');
             inp.type = 'text';
             inp.placeholder = 'Filter employees…';
             inp.className = 'emp-filter';
             wrap.appendChild(inp);
-            wrap.appendChild(sel);
+            wrap.appendChild(list);
 
             const hint = document.createElement('div');
             hint.className = 'emp-hint';
-            hint.textContent = 'Hold Ctrl / Cmd to select multiple';
-            sel.after(hint);
+            hint.textContent = 'Tick to select one or more';
+            list.after(hint);
 
             inp.addEventListener('input', function () {
                 const q = inp.value.toLowerCase();
-                Array.from(sel.options).forEach(function (opt) {
-                    opt.style.display = opt.text.toLowerCase().includes(q) ? '' : 'none';
+                list.querySelectorAll('li').forEach(function (li) {
+                    li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
                 });
             });
         });

@@ -84,11 +84,11 @@ class TenantScopedModelForm(forms.ModelForm):
 
         if 'assigned_employees' in self.fields:
             self.fields['assigned_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
-            self.fields['assigned_employees'].widget = forms.SelectMultiple(attrs={'class': 'emp-select', 'size': '5'})
+            self.fields['assigned_employees'].widget = forms.CheckboxSelectMultiple(attrs={'class': 'emp-cb-list'})
 
         if 'attendee_employees' in self.fields:
             self.fields['attendee_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
-            self.fields['attendee_employees'].widget = forms.SelectMultiple(attrs={'class': 'emp-select', 'size': '5'})
+            self.fields['attendee_employees'].widget = forms.CheckboxSelectMultiple(attrs={'class': 'emp-cb-list'})
 
         if 'profile' in self.fields:
             self.fields['profile'].queryset = MedicalProfile.objects.filter(tenant=tenant).order_by('employee__name')
@@ -106,7 +106,7 @@ class TenantScopedModelForm(forms.ModelForm):
 
         if 'selected_employees' in self.fields:
             self.fields['selected_employees'].queryset = Employee.objects.filter(tenant=tenant).order_by('name')
-            self.fields['selected_employees'].widget = forms.SelectMultiple(attrs={'class': 'emp-select', 'size': '5'})
+            self.fields['selected_employees'].widget = forms.CheckboxSelectMultiple(attrs={'class': 'emp-cb-list'})
 
 
 class IncidentForm(TenantScopedModelForm):
