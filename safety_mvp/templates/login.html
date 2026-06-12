@@ -9,7 +9,8 @@
         min-height: 100vh;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
+        padding-right: 7vw;
         overflow: hidden;
         background: #01060f;
     }
@@ -30,135 +31,150 @@
     .login-card {
         position: relative;
         z-index: 1;
-        background: rgba(6, 13, 28, 0.82);
-        border: 1px solid rgba(79, 179, 163, 0.22);
-        border-radius: 18px;
-        padding: 44px 40px;
+        background: rgba(6, 13, 28, 0.88);
+        border: 1px solid rgba(79, 179, 163, 0.18);
+        border-radius: 14px;
+        padding: 28px 26px 24px;
         width: 100%;
-        max-width: 420px;
+        max-width: 340px;
         box-shadow:
-            0 24px 64px rgba(0,0,0,0.7),
-            0 1px 0 rgba(79,179,163,0.12) inset,
-            0 0 0 1px rgba(0,0,0,0.5);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+            0 20px 56px rgba(0,0,0,0.75),
+            0 1px 0 rgba(79,179,163,0.1) inset;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
     }
 
-    .login-brand { text-align: center; margin-bottom: 28px; }
+    /* Card top accent bar */
+    .login-card::before {
+        content: '';
+        display: block;
+        height: 2px;
+        background: linear-gradient(90deg, #4fb3a3 0%, #00d4ff 60%, transparent 100%);
+        border-radius: 14px 14px 0 0;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+    }
+
+    /* Brand section — compact row layout */
+    .login-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(79,179,163,0.1);
+    }
     .login-brand-diamond {
-        font-size: 3rem;
+        font-size: 1.7rem;
         line-height: 1;
-        margin-bottom: 12px;
+        flex-shrink: 0;
         background: linear-gradient(135deg, #4fb3a3 0%, #00d4ff 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
-    .login-brand-family { font-size: 0.78rem; color: #5a8ca8; margin-bottom: 3px; letter-spacing: 0.05em; }
+    .login-brand-text { flex: 1; min-width: 0; }
+    .login-brand-family { font-size: 0.66rem; color: #5a8ca8; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1px; }
     .login-brand-name {
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 1.4rem;
+        font-size: 1.05rem;
         font-weight: 700;
         color: #eef8ff;
-        margin-bottom: 3px;
+        line-height: 1.1;
     }
-    .login-brand-desc { font-size: 0.76rem; color: #4fb3a3; letter-spacing: 0.04em; }
+    .login-brand-desc { font-size: 0.68rem; color: #4fb3a3; letter-spacing: 0.03em; margin-top: 2px; }
+    .login-brand-rule { display: none; }
 
-    /* Teal accent line under brand */
-    .login-brand-rule {
-        width: 40px;
-        height: 2px;
-        background: linear-gradient(90deg, #4fb3a3, transparent);
-        margin: 12px auto 0;
-    }
-
-    .login-form { margin-top: 20px; }
-    .form-group { margin-bottom: 16px; }
+    .login-form { margin-top: 0; }
+    .form-group { margin-bottom: 13px; }
     .form-group label {
         display: block;
-        margin-bottom: 6px;
-        color: #a8ccdb;
+        margin-bottom: 5px;
+        color: #5a8ca8;
         font-weight: 600;
-        font-size: 0.83rem;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.07em;
     }
     .form-group input {
         width: 100%;
-        padding: 11px 14px;
-        border: 1px solid rgba(79, 179, 163, 0.2);
-        border-radius: 8px;
+        padding: 9px 12px;
+        border: 1px solid rgba(79, 179, 163, 0.15);
+        border-radius: 7px;
         font-family: inherit;
-        font-size: 0.95rem;
+        font-size: 0.88rem;
         color: #c8e8f8;
-        background: rgba(3, 8, 20, 0.75);
+        background: rgba(3, 8, 20, 0.6);
         transition: border-color 0.18s, box-shadow 0.18s;
         box-sizing: border-box;
     }
     .form-group input:focus {
         outline: none;
         border-color: #4fb3a3;
-        box-shadow: 0 0 0 3px rgba(79,179,163,0.12);
+        box-shadow: 0 0 0 2px rgba(79,179,163,0.1);
     }
-    .form-group input::placeholder { color: #2a4a5a; }
+    .form-group input::placeholder { color: #243a48; }
 
     .login-button {
         width: 100%;
-        padding: 12px 16px;
+        padding: 10px 16px;
         background: linear-gradient(135deg, #4fb3a3 0%, #00d4ff 100%);
         color: #030810;
         border: none;
-        border-radius: 8px;
-        font-size: 0.95rem;
+        border-radius: 7px;
+        font-size: 0.84rem;
         font-weight: 700;
         cursor: pointer;
         font-family: 'Manrope', sans-serif;
         transition: opacity 0.2s, box-shadow 0.2s, transform 0.1s;
-        margin-top: 20px;
-        letter-spacing: 0.04em;
+        margin-top: 16px;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
     }
     .login-button:hover {
         opacity: 0.9;
-        box-shadow: 0 0 28px rgba(79,179,163,0.35);
+        box-shadow: 0 0 22px rgba(79,179,163,0.3);
     }
     .login-button:active { transform: scale(0.98); }
 
     .error-message {
         background: rgba(255, 77, 109, 0.1);
         color: #ff7c8e;
-        padding: 10px 13px;
-        border-radius: 8px;
-        margin-bottom: 16px;
-        font-size: 0.86rem;
+        padding: 8px 11px;
+        border-radius: 7px;
+        margin-bottom: 12px;
+        font-size: 0.82rem;
         border-left: 3px solid #ff4d6d;
     }
     .footer-divider {
         border: none;
-        border-top: 1px solid rgba(79,179,163,0.1);
-        margin: 20px 0;
+        border-top: 1px solid rgba(79,179,163,0.08);
+        margin: 16px 0 12px;
     }
     .login-footer {
         text-align: center;
-        font-size: 0.75rem;
-        color: #3a5a6e;
+        font-size: 0.68rem;
+        color: #2e4a5e;
+        line-height: 1.5;
     }
     .demo-info {
-        background: rgba(79, 179, 163, 0.05);
-        border: 1px solid rgba(79, 179, 163, 0.14);
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 16px;
-        font-size: 0.78rem;
-        color: #a8ccdb;
+        background: rgba(79, 179, 163, 0.04);
+        border: 1px solid rgba(79, 179, 163, 0.12);
+        padding: 9px 11px;
+        border-radius: 7px;
+        margin-top: 12px;
+        font-size: 0.74rem;
+        color: #6a9ab8;
     }
-    .demo-info strong { display: block; margin-bottom: 4px; color: #4fb3a3; }
+    .demo-info strong { display: block; margin-bottom: 2px; color: #4fb3a3; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
+    @media (max-width: 640px) {
+        .login-container { justify-content: center; padding-right: 0; padding: 16px; }
+        .login-card { max-width: 100%; }
+    }
     @media (max-width: 480px) {
-        .login-card { padding: 28px 18px; max-width: 96vw; }
-        .login-brand-diamond { font-size: 2.4rem; }
         .scene-bg { display: none; }
-        .login-container { background: #030810; }
+        .login-container { background: #030810; align-items: flex-start; padding-top: 40px; }
     }
 </style>
 {% endblock %}
@@ -537,10 +553,11 @@
     <div class="login-card">
         <div class="login-brand">
             <div class="login-brand-diamond">&#9670;</div>
-            <div class="login-brand-family">Di-VisioN Family</div>
-            <div class="login-brand-name">ISO Toolkit</div>
-            <div class="login-brand-desc">Safety &amp; Compliance Platform</div>
-            <div class="login-brand-rule"></div>
+            <div class="login-brand-text">
+                <div class="login-brand-family">Di-VisioN Family</div>
+                <div class="login-brand-name">ISO Toolkit</div>
+                <div class="login-brand-desc">Safety &amp; Compliance Platform</div>
+            </div>
         </div>
 
         {% if form.non_field_errors %}
