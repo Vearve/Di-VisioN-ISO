@@ -239,7 +239,6 @@
             border-radius: 15px;
             box-shadow: var(--card-shadow);
             padding: 15px;
-            overflow-x: auto;
         }
         .table-panel h3 {
             margin: 0 0 11px;
@@ -247,6 +246,19 @@
             font-size: 0.92rem;
             color: var(--text-bright);
         }
+        /* Accordion toggle */
+        .tp-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; background: none; border: none;
+            border-bottom: 1px solid rgba(0,180,220,0.1);
+            padding: 0 0 9px; margin-bottom: 12px;
+            color: var(--text-bright); font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.92rem; font-weight: 700; cursor: pointer; text-align: left;
+        }
+        .tp-toggle .tp-chev { transition: transform 0.22s; flex-shrink: 0; color: var(--muted); }
+        .tp-toggle[aria-expanded="false"] .tp-chev { transform: rotate(-90deg); }
+        .tp-body { overflow-x: auto; }
+        .tp-body.tp-hidden { display: none; }
 
         table { width: 100%; border-collapse: collapse; }
         /* Only full-width standalone sections get a min-width (they have overflow-x: auto) */
@@ -578,6 +590,35 @@
             </section>
         </main>
     </div>
+
+    <script>
+    /* ── Table-panel accordion ─────────────────────────────────── */
+    document.querySelectorAll('.table-panel').forEach(function (panel) {
+        var h3 = panel.querySelector('h3');
+        if (!h3) return;
+
+        // Wrap everything after h3 into a body div
+        var body = document.createElement('div');
+        body.className = 'tp-body';
+        while (h3.nextSibling) body.appendChild(h3.nextSibling);
+        panel.appendChild(body);
+
+        // Replace h3 with a button toggle
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tp-toggle';
+        btn.setAttribute('aria-expanded', 'true');
+        btn.innerHTML = h3.textContent +
+            '<svg class="tp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+        h3.replaceWith(btn);
+
+        btn.addEventListener('click', function () {
+            var expanded = btn.getAttribute('aria-expanded') === 'true';
+            btn.setAttribute('aria-expanded', String(!expanded));
+            body.classList.toggle('tp-hidden', expanded);
+        });
+    });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

@@ -1003,6 +1003,9 @@ class Employee(models.Model):
     certifications = models.ManyToManyField(Certification, blank=True, related_name="employees")
     employee_file = models.FileField(upload_to='employees/files/', blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
 # Objectives Model
 class Objective(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True, related_name='objectives')
