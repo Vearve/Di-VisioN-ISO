@@ -248,7 +248,9 @@
             color: var(--text-bright);
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 560px; }
+        table { width: 100%; border-collapse: collapse; }
+        /* Only full-width standalone sections get a min-width (they have overflow-x: auto) */
+        .table-panel table { min-width: 560px; }
         th, td { border-bottom: 1px solid rgba(0,180,220,0.07); text-align: left; padding: 9px 8px; font-size: 0.84rem; color: var(--text); }
         th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
         tbody tr:hover td { background: rgba(0,180,220,0.04); }
@@ -297,7 +299,7 @@
             .panels-3col { grid-template-columns: 1fr; }
             .panel { border-radius: 11px; padding: 12px; }
             .table-panel { border-radius: 11px; padding: 11px; margin-top: 10px; }
-            table { min-width: 430px; }
+            .table-panel table { min-width: 430px; }
             th, td { padding: 7px 5px; font-size: 0.76rem; }
             .topbar { flex-direction: column; align-items: flex-start; padding: 12px; border-radius: 12px; }
             .topbar h1 { font-size: 1.05rem; }
