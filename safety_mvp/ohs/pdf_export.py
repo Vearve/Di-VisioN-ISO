@@ -169,24 +169,38 @@ class PDFGenerator:
         story.append(Spacer(1, 0.04*inch))
 
     def _embed_image(self, story, field):
-        """Try to embed an ImageField/FileField image; silently skip if unavailable."""
+        """Embed an attached image/file into the PDF story.
+
+        Uses field.open()/field.read() (storage-backend agnostic — works for
+        local disk and S3). Falls back to showing the filename for non-image
+        files. Skips silently if the field is empty.
+        """
         if not field:
             return
-        try:
-            path = field.path
-            if os.path.isfile(path):
-                ext = os.path.splitext(path)[1].lower()
-                if ext in ('.jpg', '.jpeg', '.png', '.gif', '.bmp'):
-                    story.append(Spacer(1, 0.06*inch))
-                    img = Image(path, width=4*inch, height=3*inch, kind='proportional')
+        name = str(getattr(field, 'name', '') or '')
+        if not name:
+            return
+
+        ext = os.path.splitext(name)[1].lower()
+        is_image = ext in ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
+
+        if is_image:
+            try:
+                field.open('rb')
+                data = field.read()
+                field.close()
+                if data:
+                    buf = BytesIO(data)
+                    story.append(Spacer(1, 0.08*inch))
+                    img = Image(buf, width=5*inch, height=4*inch, kind='proportional')
                     story.append(img)
                     story.append(Spacer(1, 0.06*inch))
                     return
-        except Exception:
-            pass
-        name = getattr(field, 'name', None)
-        if name:
-            self._content_row(story, 'ATTACHED FILE', os.path.basename(str(name)))
+            except Exception:
+                pass
+
+        # Non-image file, or image read failed — show filename as a row
+        self._content_row(story, 'ATTACHED FILE', os.path.basename(name))
 
     def _flags_row(self, story, flags):
         """Render a row of True/False flags as a coloured pill list."""
