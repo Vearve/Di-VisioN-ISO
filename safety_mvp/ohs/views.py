@@ -1232,6 +1232,31 @@ def export_to_pdf(request, module_name):
             buffer = pdf_gen.generate_medical_assessments_report(data, site_name)
             filename = f"medical_assessments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
+        elif module_name == 'ems_aspects':
+            data = scope_qs(EnvironmentalAspect.objects.all()).order_by('-created_at')
+            buffer = pdf_gen.generate_ems_aspects_report(data, site_name)
+            filename = f"ems_aspects_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'ems_waste':
+            data = scope_qs(WasteManagementLog.objects.all()).order_by('-log_date')
+            buffer = pdf_gen.generate_ems_waste_report(data, site_name)
+            filename = f"ems_waste_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'ems_spills':
+            data = scope_qs(SpillReleaseIncident.objects.all()).order_by('-incident_date')
+            buffer = pdf_gen.generate_ems_spills_report(data, site_name)
+            filename = f"ems_spills_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'ems_objectives':
+            data = scope_qs(EnvironmentalObjective.objects.all()).order_by('-created_at')
+            buffer = pdf_gen.generate_ems_objectives_report(data, site_name)
+            filename = f"ems_objectives_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        elif module_name == 'ems_energy':
+            data = scope_qs(EnergyWaterConsumption.objects.all()).order_by('-reading_date')
+            buffer = pdf_gen.generate_ems_energy_report(data, site_name)
+            filename = f"ems_energy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
         else:
             messages.error(request, f'Export not available for {module_name}')
             return redirect('home')

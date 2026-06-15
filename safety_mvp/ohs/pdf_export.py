@@ -1011,3 +1011,192 @@ class PDFGenerator:
         doc.build(story)
         buf.seek(0)
         return buf
+
+    # ── EMS Reports ────────────────────────────────────────────────────────────
+
+    def generate_ems_aspects_report(self, aspects, site_name=""):
+        buf, doc = self._base_doc()
+        story = []
+        self._header(story, site_name)
+        story.append(Paragraph(f'Environmental Aspects Register — {aspects.count()} entries', self.styles['CustomHeading']))
+        story.append(Spacer(1, 0.1*inch))
+
+        for a in aspects[:200]:
+            created = a.created_at.strftime('%d %b %Y') if a.created_at else 'N/A'
+            review = a.review_date.strftime('%d %b %Y') if a.review_date else '-'
+            self._section_header(story, f'  {a.activity}  ·  {a.aspect}')
+            self._info_grid(story, [
+                ['Activity', a.activity, 'Aspect', a.aspect],
+                ['Potential Impact', a.potential_impact,
+                 'Impact Type', a.get_impact_type_display() if hasattr(a, 'get_impact_type_display') else a.impact_type],
+                ['Operating Condition', a.get_operating_condition_display() if hasattr(a, 'get_operating_condition_display') else a.operating_condition,
+                 'Significance', a.get_significance_display() if hasattr(a, 'get_significance_display') else a.significance],
+                ['Monitoring Required', 'Yes' if a.monitoring_required else 'No',
+                 'Review Date', review],
+                ['Site', a.site.name if a.site else 'All Sites',
+                 'Recorded', created],
+            ])
+            self._content_row(story, 'CONTROL MEASURE', a.control_measure)
+            self._content_row(story, 'LEGAL REQUIREMENT', a.legal_requirement)
+            self._content_row(story, 'NOTES', a.notes)
+            story.append(Spacer(1, 0.2*inch))
+
+        self._footer(story)
+        doc.build(story)
+        buf.seek(0)
+        return buf
+
+    def generate_ems_waste_report(self, logs, site_name=""):
+        buf, doc = self._base_doc()
+        story = []
+        self._header(story, site_name)
+        total_kg = sum(float(l.quantity_kg or 0) for l in logs)
+        story.append(Paragraph(
+            f'Waste Management Log — {logs.count()} records  ·  Total: {total_kg:,.1f} kg',
+            self.styles['CustomHeading']))
+        story.append(Spacer(1, 0.1*inch))
+
+        data = [['Date', 'Site', 'Waste Type', 'Description', 'Qty (kg)', 'Disposal Method', 'Contractor', 'Manifest']]
+        for l in logs[:200]:
+            data.append([
+                l.log_date.strftime('%d/%m/%Y') if l.log_date else '-',
+                l.site.name if l.site else 'N/A',
+                l.get_waste_type_display() if hasattr(l, 'get_waste_type_display') else l.waste_type,
+                l.description[:28],
+                f'{float(l.quantity_kg):,.1f}',
+                l.get_disposal_method_display() if hasattr(l, 'get_disposal_method_display') else l.disposal_method,
+                (l.disposal_contractor or '-')[:20],
+                (l.manifest_number or '-')[:14],
+            ])
+        self._std_table(story, data,
+                        [0.75*inch, 0.8*inch, 1*inch, 1.1*inch, 0.65*inch, 1.05*inch, 0.85*inch, 0.75*inch])
+
+        # Notes section — only records that have notes
+        notes_records = [l for l in logs[:200] if l.notes and l.notes.strip()]
+        if notes_records:
+            self._section_header(story, '  NOTES', color=_MIDBLUE)
+            for l in notes_records:
+                self._content_row(story, l.log_date.strftime('%d/%m/%Y') if l.log_date else '-', l.notes)
+
+        self._footer(story)
+        doc.build(story)
+        buf.seek(0)
+        return buf
+
+    def generate_ems_spills_report(self, spills, site_name=""):
+        buf, doc = self._base_doc()
+        story = []
+        self._header(story, site_name)
+        story.append(Paragraph(f'Spill & Release Incidents — {spills.count()} records', self.styles['CustomHeading']))
+        story.append(Spacer(1, 0.1*inch))
+
+        for s in spills[:100]:
+            date_str = s.incident_date.strftime('%d %b %Y  %H:%M') if s.incident_date else 'N/A'
+            severity_disp = s.get_severity_display() if hasattr(s, 'get_severity_display') else s.severity
+            self._section_header(story, f'  {date_str}  ·  {severity_disp}')
+
+            reported_by_str = (s.reported_by.get_full_name() or s.reported_by.username) if s.reported_by else '-'
+            qty_str = f'{float(s.quantity_litres):,.1f} L' if s.quantity_litres else '-'
+            cleanup_date = s.cleanup_date.strftime('%d %b %Y') if s.cleanup_date else '-'
+
+            self._info_grid(story, [
+                ['Date & Time', date_str,
+                 'Substance', s.get_substance_display() if hasattr(s, 'get_substance_display') else s.substance],
+                ['Severity', severity_disp,
+                 'Quantity', qty_str],
+                ['Site', s.site.name if s.site else 'N/A',
+                 'Reported By', reported_by_str],
+                ['Cleanup Completed', 'Yes' if s.cleanup_completed else 'No',
+                 'Cleanup Date', cleanup_date],
+                ['Regulatory Notification Required', 'YES' if s.regulatory_notification_required else 'No',
+                 'Notification Sent', 'Yes' if s.regulatory_notification_sent else 'No'],
+            ])
+
+            flags = []
+            if s.regulatory_notification_required and not s.regulatory_notification_sent:
+                flags.append('⚠ REGULATORY NOTIFICATION PENDING')
+            if not s.cleanup_completed:
+                flags.append('⚠ CLEANUP INCOMPLETE')
+            self._flags_row(story, flags)
+
+            self._content_row(story, 'LOCATION', s.location_description)
+            self._content_row(story, 'CAUSE', s.cause)
+            self._content_row(story, 'IMMEDIATE ACTION', s.immediate_action)
+            self._content_row(story, 'NOTES', s.notes)
+            story.append(Spacer(1, 0.25*inch))
+
+        self._footer(story)
+        doc.build(story)
+        buf.seek(0)
+        return buf
+
+    def generate_ems_objectives_report(self, objectives, site_name=""):
+        buf, doc = self._base_doc()
+        story = []
+        self._header(story, site_name)
+        story.append(Paragraph(f'Environmental Objectives — {objectives.count()} records', self.styles['CustomHeading']))
+        story.append(Spacer(1, 0.1*inch))
+
+        for obj in objectives[:100]:
+            due = obj.due_date.strftime('%d %b %Y') if obj.due_date else 'No due date'
+            status_disp = obj.get_status_display() if hasattr(obj, 'get_status_display') else obj.status
+            self._section_header(story, f'  {obj.title}  ·  {status_disp}')
+
+            responsible = '-'
+            if obj.responsible_person:
+                responsible = obj.responsible_person.get_full_name() or obj.responsible_person.username
+
+            self._info_grid(story, [
+                ['Title', obj.title, 'Status', status_disp],
+                ['Due Date', due, 'Responsible', responsible],
+                ['Site', obj.site.name if obj.site else 'All Sites',
+                 'Indicator', obj.indicator or '-'],
+            ])
+            self._content_row(story, 'TARGET / DESCRIPTION', obj.target_description)
+            self._content_row(story, 'NOTES', obj.notes)
+            story.append(Spacer(1, 0.2*inch))
+
+        self._footer(story)
+        doc.build(story)
+        buf.seek(0)
+        return buf
+
+    def generate_ems_energy_report(self, readings, site_name=""):
+        buf, doc = self._base_doc()
+        story = []
+        self._header(story, site_name)
+        story.append(Paragraph(f'Energy & Water Consumption — {readings.count()} readings', self.styles['CustomHeading']))
+        story.append(Spacer(1, 0.1*inch))
+
+        data = [['Date', 'Site', 'Resource', 'Quantity', 'Unit Cost', 'Total Cost', 'Meter Ref', 'Recorded By']]
+        for r in readings[:200]:
+            qty = float(r.quantity or 0)
+            cost = float(r.unit_cost or 0)
+            total = qty * cost if r.unit_cost else '-'
+            total_str = f'${total:,.2f}' if isinstance(total, float) else '-'
+            recorded_by = '-'
+            if r.recorded_by:
+                recorded_by = (r.recorded_by.get_full_name() or r.recorded_by.username)[:16]
+            data.append([
+                r.reading_date.strftime('%d/%m/%Y') if r.reading_date else '-',
+                r.site.name[:14] if r.site else 'N/A',
+                r.get_resource_type_display() if hasattr(r, 'get_resource_type_display') else r.resource_type,
+                f'{qty:,.3f}',
+                f'${cost:,.2f}' if r.unit_cost else '-',
+                total_str,
+                (r.meter_reference or '-')[:14],
+                recorded_by,
+            ])
+        self._std_table(story, data,
+                        [0.75*inch, 0.85*inch, 1.1*inch, 0.8*inch, 0.7*inch, 0.7*inch, 0.85*inch, 0.7*inch])
+
+        notes_records = [r for r in readings[:200] if r.notes and r.notes.strip()]
+        if notes_records:
+            self._section_header(story, '  NOTES', color=_MIDBLUE)
+            for r in notes_records:
+                self._content_row(story, r.reading_date.strftime('%d/%m/%Y') if r.reading_date else '-', r.notes)
+
+        self._footer(story)
+        doc.build(story)
+        buf.seek(0)
+        return buf
