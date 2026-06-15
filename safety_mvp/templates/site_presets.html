@@ -175,13 +175,13 @@ input[type="number"]:focus, select:focus {
                             <div>
                                 <label for="{{ form.fra_target.id_for_label }}" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text);">Monthly FRA Target</label>
                                 {{ form.fra_target }}
-                                <span class="field-hint">Fire Risk Assessments</span>
+                                <span class="field-hint">Formal Risk Assessments</span>
                                 {% if form.fra_target.errors %}<ul class="errorlist">{% for e in form.fra_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                             </div>
                             <div>
                                 <label for="{{ form.flra_target.id_for_label }}" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text);">Monthly FLRA Target</label>
                                 {{ form.flra_target }}
-                                <span class="field-hint">Fire &amp; Life Risk Assessments</span>
+                                <span class="field-hint">Field Level Risk Assessments</span>
                                 {% if form.flra_target.errors %}<ul class="errorlist">{% for e in form.flra_target.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                             </div>
                             <div>
@@ -215,7 +215,7 @@ input[type="number"]:focus, select:focus {
                 <ul>
                     <li><strong>Man-Hours:</strong> Expected total working hours for all employees per month</li>
                     <li><strong>Incidents:</strong> Maximum acceptable incidents per month (0 = zero tolerance)</li>
-                    <li><strong>JSA/FRA/FLRA:</strong> Minimum required assessments per month</li>
+                    <li><strong>JSA/FRA/FLRA:</strong> Job Safety Analysis / Formal Risk Assessment / Field Level Risk Assessment — minimum required per month</li>
                     <li><strong>CCV:</strong> Critical Control Verifications required for compliance</li>
                     <li>Performance is tracked over a 30-day rolling period</li>
                 </ul>
