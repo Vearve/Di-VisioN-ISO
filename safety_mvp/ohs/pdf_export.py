@@ -7,10 +7,11 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from io import BytesIO
 from datetime import datetime
+import os
 
 # ── Palette ────────────────────────────────────────────────────────────────────
 _NAVY     = '#0d2137'
@@ -132,6 +133,79 @@ class PDFGenerator:
         story.append(bar)
         story.append(Spacer(1, 0.05*inch))
 
+    def _info_grid(self, story, rows):
+        """4-column label/value grid: [[label, value, label, value], ...]"""
+        t = Table(rows, colWidths=[1.2*inch, 2.3*inch, 1.5*inch, 2*inch])
+        t.setStyle(TableStyle([
+            ('FONTNAME',     (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME',     (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE',     (0, 0), (-1, -1), 8),
+            ('BACKGROUND',   (0, 0), (0, -1), colors.HexColor(_INFOBG)),
+            ('BACKGROUND',   (2, 0), (2, -1), colors.HexColor(_INFOBG)),
+            ('GRID',         (0, 0), (-1, -1), 0.5, colors.HexColor(_GRIDLINE)),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 0.06*inch))
+
+    def _content_row(self, story, label, value, warn=False):
+        """Full-width label | value row. Only rendered when value is non-empty."""
+        if not value or not str(value).strip():
+            return
+        bg = '#fff3cd' if warn else _INFOBG
+        ct = Table([[label, str(value)]], colWidths=[1.5*inch, 5.5*inch])
+        ct.setStyle(TableStyle([
+            ('FONTNAME',     (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE',     (0, 0), (-1, -1), 8),
+            ('BACKGROUND',   (0, 0), (0, -1), colors.HexColor(bg)),
+            ('GRID',         (0, 0), (-1, -1), 0.5, colors.HexColor(_GRIDLINE)),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+            ('VALIGN',       (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(ct)
+        story.append(Spacer(1, 0.04*inch))
+
+    def _embed_image(self, story, field):
+        """Try to embed an ImageField/FileField image; silently skip if unavailable."""
+        if not field:
+            return
+        try:
+            path = field.path
+            if os.path.isfile(path):
+                ext = os.path.splitext(path)[1].lower()
+                if ext in ('.jpg', '.jpeg', '.png', '.gif', '.bmp'):
+                    story.append(Spacer(1, 0.06*inch))
+                    img = Image(path, width=4*inch, height=3*inch, kind='proportional')
+                    story.append(img)
+                    story.append(Spacer(1, 0.06*inch))
+                    return
+        except Exception:
+            pass
+        name = getattr(field, 'name', None)
+        if name:
+            self._content_row(story, 'ATTACHED FILE', os.path.basename(str(name)))
+
+    def _flags_row(self, story, flags):
+        """Render a row of True/False flags as a coloured pill list."""
+        if not flags:
+            return
+        text = '  ·  '.join(flags)
+        ft = Table([[text]], colWidths=[7*inch])
+        ft.setStyle(TableStyle([
+            ('FONTNAME',     (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE',     (0, 0), (-1, -1), 8),
+            ('BACKGROUND',   (0, 0), (-1, -1), colors.HexColor('#1a3a5c')),
+            ('TEXTCOLOR',    (0, 0), (-1, -1), colors.HexColor('#a8d4e6')),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+            ('LEFTPADDING',  (0, 0), (-1, -1), 8),
+        ]))
+        story.append(ft)
+        story.append(Spacer(1, 0.06*inch))
+
     def _std_table(self, story, data, col_widths, header_color=_MIDBLUE):
         t = Table(data, colWidths=col_widths, repeatRows=1)
         t.setStyle(TableStyle([
@@ -157,19 +231,50 @@ class PDFGenerator:
         self._header(story, site_name)
         story.append(Paragraph(f'Total Incidents: {incidents.count()}', self.styles['CustomHeading']))
         story.append(Spacer(1, 0.1*inch))
-        data = [['Date', 'Site / Project', 'Type', 'Severity', 'Description', 'Status']]
+
         for inc in incidents[:100]:
-            data.append([
-                inc.date_of_incident.strftime('%d/%m/%Y') if inc.date_of_incident else 'N/A',
-                inc.site.name if getattr(inc, 'site', None) else 'Unknown',
-                (inc.get_incident_type_display() if hasattr(inc, 'get_incident_type_display')
-                 else getattr(inc, 'incident_type', ''))[:15],
-                (inc.get_severity_display() if hasattr(inc, 'get_severity_display')
-                 else getattr(inc, 'severity', ''))[:10],
-                (inc.description or '')[:40] + ('…' if len(inc.description or '') > 40 else ''),
-                getattr(inc, 'status', 'Open'),
+            date_str = inc.date_reported.strftime('%d %b %Y') if inc.date_reported else 'N/A'
+            event_str = inc.event_datetime.strftime('%d %b %Y  %H:%M') if inc.event_datetime else 'N/A'
+            self._section_header(story, f'  {date_str}  ·  {inc.title or "Incident"}')
+
+            self._info_grid(story, [
+                ['Date Reported', date_str,
+                 'Event Date/Time', event_str],
+                ['Site', inc.site.name if inc.site else 'N/A',
+                 'Location', inc.location or '-'],
+                ['Severity', inc.severity or 'N/A',
+                 'Treatment Level', (inc.get_treatment_level_display() if hasattr(inc, 'get_treatment_level_display') else inc.treatment_level) or 'N/A'],
+                ['Affected Person', inc.affected_person_name or '-',
+                 'Employment Type', (inc.get_employment_type_display() if hasattr(inc, 'get_employment_type_display') else inc.employment_type) or '-'],
+                ['Department', inc.department or '-',
+                 'Lost Time (days)', str(inc.lost_time_days or 0)],
+                ['Reported By', inc.reported_by.get_full_name() or inc.reported_by.username if inc.reported_by else '-',
+                 'Reportable', 'YES — Notify Regulator' if inc.reportable_to_regulator else 'No'],
             ])
-        self._std_table(story, data, [0.9*inch, 1.4*inch, 1.1*inch, 0.9*inch, 1.5*inch, 0.7*inch])
+
+            self._content_row(story, 'DESCRIPTION', inc.description)
+            self._content_row(story, 'CREW / WITNESSES', ', '.join(filter(None, [inc.crew, inc.witnesses])) or None)
+            self._content_row(story, 'IMMEDIATE ACTION', inc.immediate_action_taken)
+            self._content_row(story, 'INJURY / ILLNESS', ', '.join(filter(None, [inc.injury_type, inc.body_part_affected])) or None)
+            self._content_row(story, 'INCIDENT CATEGORY', inc.incident_category)
+            self._content_row(story, 'ROOT CAUSE', inc.root_cause)
+            self._content_row(story, 'CONTRIBUTING FACTORS', inc.contributing_factors)
+            self._content_row(story, 'CORRECTIVE ACTIONS', inc.corrective_actions)
+            self._content_row(story, 'LESSONS LEARNED', inc.lessons_learned)
+            self._content_row(story, 'CLOSEOUT VERIFICATION', inc.closeout_verification)
+
+            inv_lead = inc.investigation_lead
+            inv_lead_str = (inv_lead.get_full_name() or inv_lead.username) if inv_lead else '-'
+            action_own = inc.action_owner
+            action_own_str = (action_own.get_full_name() or action_own.username) if action_own else '-'
+            comp_date = inc.investigation_completion_date.strftime('%d %b %Y') if inc.investigation_completion_date else '-'
+            reg_date = inc.regulator_notification_date.strftime('%d %b %Y') if inc.regulator_notification_date else '-'
+            self._content_row(story, 'INVESTIGATION', f'Lead: {inv_lead_str}  |  Action Owner: {action_own_str}  |  Completion: {comp_date}  |  Regulator notified: {reg_date}')
+
+            self._embed_image(story, inc.image)
+            self._embed_image(story, inc.incident_file)
+            story.append(Spacer(1, 0.25*inch))
+
         self._footer(story)
         doc.build(story)
         buf.seek(0)
@@ -227,16 +332,106 @@ class PDFGenerator:
         self._header(story, site_name)
         story.append(Paragraph(f'Total JSAs: {jsas.count()}', self.styles['CustomHeading']))
         story.append(Spacer(1, 0.1*inch))
-        data = [['JSA #', 'Job Task', 'Site', 'Assessment Date', 'Performed By']]
+
         for jsa in jsas[:100]:
-            data.append([
-                jsa.jsa_number or 'N/A',
-                jsa.job_task[:26],
-                jsa.site.name if jsa.site else 'N/A',
-                jsa.assessment_date.strftime('%d/%m/%Y') if jsa.assessment_date else 'N/A',
-                (jsa.senior_supervisor_name or jsa.work_group_supervisor_name or 'N/A')[:20],
+            date_str = jsa.assessment_date.strftime('%d %b %Y') if jsa.assessment_date else 'N/A'
+            self._section_header(story, f'  {jsa.jsa_number or "JSA"}  ·  {jsa.job_task}')
+
+            self._info_grid(story, [
+                ['JSA Number', jsa.jsa_number or '-',
+                 'Work Order', jsa.work_order_number or '-'],
+                ['Date', date_str,
+                 'Site', jsa.site.name if jsa.site else 'N/A'],
+                ['Location', jsa.location or '-',
+                 'Plant / Area', jsa.plant_area or '-'],
+                ['Senior Supervisor', jsa.senior_supervisor_name or '-',
+                 'Work Group Supervisor', jsa.work_group_supervisor_name or '-'],
+                ['Doc Reference', f'{jsa.document_reference}  Rev {jsa.revision_number}',
+                 'Performed By', (jsa.performed_by.get_full_name() or jsa.performed_by.username) if jsa.performed_by else '-'],
             ])
-        self._std_table(story, data, [1.1*inch, 2.1*inch, 1.3*inch, 1.2*inch, 1.3*inch])
+
+            # Permits
+            permit_map = [
+                ('permit_to_work', 'Permit to Work'), ('excavation_permit', 'Excavation'),
+                ('hot_work_permit', 'Hot Work'), ('hv_electrical_isolation_permit', 'HV Electrical Isolation'),
+                ('hv_vicinity_permit', 'HV Vicinity'), ('radiation_work_permit', 'Radiation'),
+                ('working_at_height_permit', 'Working at Height'), ('chemical_pump_pipe_permit', 'Chemical/Pump/Pipe'),
+                ('confined_space_permit', 'Confined Space'), ('other_permit', jsa.other_permit_description or 'Other'),
+            ]
+            permits = [label for attr, label in permit_map if getattr(jsa, attr, False)]
+            if permits:
+                self._content_row(story, 'PERMITS REQUIRED', '  ·  '.join(permits))
+
+            # FPCs
+            fpc_map = [
+                ('fpc_competent_capable_controlled', 'Competent & Capable'),
+                ('fpc_identify_control_hazards', 'Identify & Control Hazards'),
+                ('fpc_safe_lifting_operations', 'Safe Lifting'),
+                ('fpc_drive_safely', 'Drive Safely'),
+                ('fpc_energy_isolation', 'Energy Isolation'),
+                ('fpc_confined_space_entry', 'Confined Space Entry'),
+                ('fpc_work_at_heights', 'Work at Heights'),
+                ('fpc_surface_underground', 'Surface/Underground'),
+                ('fpc_equipment_safeguards', 'Equipment Safeguards'),
+                ('fpc_chemicals_hazardous_substances', 'Chemicals/Hazardous Substances'),
+            ]
+            fpcs = [label for attr, label in fpc_map if getattr(jsa, attr, False)]
+            if fpcs:
+                self._content_row(story, 'FPC COMMITMENTS', '  ·  '.join(fpcs))
+
+            # Potential hazards
+            haz_map = [
+                ('hazard_electrical', 'Electrical'), ('hazard_mechanical', 'Mechanical'),
+                ('hazard_chemical', 'Chemical'), ('hazard_dust_fume', 'Dust/Fume'),
+                ('hazard_stored_energy', 'Stored Energy'), ('hazard_live_equipment', 'Live Equipment'),
+                ('hazard_manual_handling', 'Manual Handling'), ('hazard_radiation', 'Radiation'),
+                ('hazard_noise', 'Noise'), ('hazard_fire_explosives', 'Fire/Explosives'),
+                ('hazard_working_at_height', 'Working at Height'), ('hazard_rock_falls', 'Rock Falls'),
+                ('hazard_flora_fauna', 'Flora/Fauna'), ('hazard_falling_equipment', 'Falling Equipment'),
+            ]
+            haz = [label for attr, label in haz_map if getattr(jsa, attr, False)]
+            if haz:
+                self._content_row(story, 'POTENTIAL HAZARDS', '  ·  '.join(haz))
+
+            self._content_row(story, 'ADDITIONAL PPE', jsa.additional_ppe_requirements)
+            self._content_row(story, 'SPECIAL TOOLS / EQUIPMENT', jsa.special_tools_equipment)
+            self._content_row(story, 'HAZARDOUS MATERIALS', jsa.hazardous_materials)
+            self._content_row(story, 'FIRE / EMERGENCY EQUIPMENT', jsa.fire_emergency_equipment)
+            self._content_row(story, 'REQUIRED COMPETENCY', jsa.required_competency)
+            self._content_row(story, 'ADDITIONAL CONTROLS', jsa.additional_controls_required)
+            self._content_row(story, 'HAZARDS (GENERAL)', jsa.hazards)
+            self._content_row(story, 'CONTROLS (GENERAL)', jsa.controls)
+
+            # JSA Steps table
+            steps = list(jsa.steps.order_by('step_number'))
+            if steps:
+                self._section_header(story, '  JOB SAFETY ANALYSIS STEPS', color=_MIDBLUE)
+                step_data = [['#', 'Job Step', 'Hazard', 'Current Controls', 'Risk\nBefore', 'Additional Actions', 'Risk\nAfter']]
+                for s in steps:
+                    step_data.append([
+                        str(s.step_number),
+                        s.job_step or '-',
+                        s.job_step_hazard or '-',
+                        s.current_controls or '-',
+                        s.residual_risk_before or '-',
+                        s.required_additional_actions or '-',
+                        s.residual_risk_after or '-',
+                    ])
+                self._std_table(story, step_data, [0.3*inch, 1.2*inch, 1.1*inch, 1.2*inch, 0.55*inch, 1.3*inch, 0.55*inch])
+                story.append(Spacer(1, 0.06*inch))
+
+            # Team acknowledgements
+            acks = jsa.team_member_acknowledgements or []
+            if acks:
+                self._section_header(story, '  TEAM ACKNOWLEDGEMENTS', color=_MIDBLUE)
+                ack_data = [['Name', 'ID No.', 'Date']]
+                for a in acks:
+                    ack_data.append([a.get('name', '-'), a.get('id_no', '-'), a.get('date', '-')])
+                self._std_table(story, ack_data, [2.5*inch, 2*inch, 2.5*inch])
+
+            self._embed_image(story, jsa.jsa_file)
+            story.append(Spacer(1, 0.3*inch))
+
         self._footer(story)
         doc.build(story)
         buf.seek(0)
@@ -248,16 +443,32 @@ class PDFGenerator:
         self._header(story, site_name)
         story.append(Paragraph(f'Total FRAs: {fras.count()}', self.styles['CustomHeading']))
         story.append(Spacer(1, 0.1*inch))
-        data = [['Activity', 'Location', 'Hazard Category', 'Risk Level', 'Assessed By']]
+
         for fra in fras[:100]:
-            data.append([
-                fra.activity[:26],
-                fra.location[:18],
-                fra.hazard_category[:18],
-                fra.risk_level or 'N/A',
-                (fra.assessed_by.username if getattr(fra, 'assessed_by', None) else 'N/A')[:16],
+            date_str = fra.date_assessed.strftime('%d %b %Y') if fra.date_assessed else 'N/A'
+            self._section_header(story, f'  {date_str}  ·  {fra.activity}')
+
+            self._info_grid(story, [
+                ['Activity', fra.activity,
+                 'Location', fra.location or '-'],
+                ['Hazard Category', fra.hazard_category or '-',
+                 'Risk Level', fra.risk_level or '-'],
+                ['Initial Risk Score', f'L{fra.likelihood or "-"} × S{fra.severity_score or "-"} = {fra.initial_risk_score or "-"}',
+                 'Residual Risk Score', f'L{fra.residual_likelihood or "-"} × S{fra.residual_severity or "-"} = {fra.residual_risk_score or "-"}'],
+                ['Acceptable', 'Yes' if fra.acceptable else 'No',
+                 'Review Frequency', fra.review_frequency or '-'],
+                ['Assessed By', (fra.assessed_by.get_full_name() or fra.assessed_by.username) if fra.assessed_by else '-',
+                 'Approver', (fra.approver.get_full_name() or fra.approver.username) if fra.approver else '-'],
             ])
-        self._std_table(story, data, [1.6*inch, 1.4*inch, 1.5*inch, 0.9*inch, 1.3*inch])
+
+            self._content_row(story, 'RISK IDENTIFIED', fra.risk_identified)
+            self._content_row(story, 'PERSONS AT RISK', fra.persons_at_risk)
+            self._content_row(story, 'EXISTING CONTROLS', fra.existing_controls)
+            self._content_row(story, 'CONTROL MEASURES', fra.control_measures)
+            self._content_row(story, 'ADDITIONAL CONTROLS', fra.additional_controls)
+            self._embed_image(story, fra.fra_file)
+            story.append(Spacer(1, 0.25*inch))
+
         self._footer(story)
         doc.build(story)
         buf.seek(0)
@@ -269,16 +480,50 @@ class PDFGenerator:
         self._header(story, site_name)
         story.append(Paragraph(f'Total FLRAs: {flras.count()}', self.styles['CustomHeading']))
         story.append(Spacer(1, 0.1*inch))
-        data = [['Date', 'Site', 'Shift', 'Task', 'Employees']]
+
         for flra in flras[:100]:
-            data.append([
-                flra.date.strftime('%d/%m/%Y') if flra.date else 'N/A',
-                flra.site.name if flra.site else 'N/A',
-                flra.shift or 'N/A',
-                flra.task_description[:24],
-                getattr(flra, 'selected_employee_names', '-')[:32],
+            date_str = flra.date.strftime('%d %b %Y') if flra.date else 'N/A'
+            self._section_header(story, f'  {date_str}  ·  {flra.task_description[:80] if flra.task_description else "FLRA"}')
+
+            assessed_by_str = '-'
+            if flra.assessed_by:
+                assessed_by_str = flra.assessed_by.get_full_name() or flra.assessed_by.username
+
+            self._info_grid(story, [
+                ['Date', date_str,
+                 'Site', flra.site.name if flra.site else 'N/A'],
+                ['Location', flra.location or '-',
+                 'Shift', flra.shift or 'N/A'],
+                ['Weather Conditions', flra.weather_conditions or '-',
+                 'Assessed By', assessed_by_str],
+                ['Supervisor', flra.supervisor_signature or '-',
+                 'Escalation Required', 'YES' if flra.escalation_required else 'No'],
             ])
-        self._std_table(story, data, [1*inch, 1.2*inch, 0.9*inch, 2.2*inch, 1.4*inch])
+
+            flags = []
+            if flra.simultaneous_operations:    flags.append('Simultaneous Operations')
+            if flra.energy_isolation_confirmed: flags.append('Energy Isolation Confirmed')
+            if flra.stop_work_authority_used:   flags.append('Stop Work Authority Used')
+            if flra.escalation_required:        flags.append('⚠ ESCALATION REQUIRED')
+            self._flags_row(story, flags)
+
+            self._content_row(story, 'TASK DESCRIPTION', flra.task_description)
+            self._content_row(story, 'IDENTIFIED HAZARDS', flra.identified_hazards)
+            self._content_row(story, 'CONTROL MEASURES', flra.control_measures)
+            self._content_row(story, 'ADDITIONAL CONTROLS', flra.additional_controls_added)
+            self._content_row(story, 'DYNAMIC CHANGES', flra.dynamic_changes_noticed)
+            self._content_row(story, 'WORKER SIGNATURES', flra.worker_signatures)
+
+            # Employees on task
+            emp_names = list(flra.selected_employees.values_list('name', flat=True))
+            all_people = emp_names[:]
+            if flra.crew:
+                all_people.append(f'Crew/External: {flra.crew}')
+            self._content_row(story, 'EMPLOYEES ON TASK', ', '.join(all_people) if all_people else '-')
+
+            self._embed_image(story, flra.flra_file)
+            story.append(Spacer(1, 0.25*inch))
+
         self._footer(story)
         doc.build(story)
         buf.seek(0)
@@ -290,16 +535,27 @@ class PDFGenerator:
         self._header(story, site_name)
         story.append(Paragraph(f'Total Observations: {observations.count()}', self.styles['CustomHeading']))
         story.append(Spacer(1, 0.1*inch))
-        data = [['Date', 'Site', 'Task', 'Type', 'Follow-up']]
+
         for obs in observations[:100]:
-            data.append([
-                obs.date.strftime('%d/%m/%Y') if obs.date else 'N/A',
-                obs.site.name if obs.site else 'N/A',
-                obs.task[:26],
-                obs.observation_type,
-                'Yes' if obs.follow_up_required else 'No',
+            date_str = obs.date.strftime('%d %b %Y') if obs.date else 'N/A'
+            obs_type = 'Planned Task Observation' if obs.observation_type == 'PTO' else 'Critical Control Verification'
+            self._section_header(story, f'  {date_str}  ·  {obs_type}  ·  {obs.task}')
+
+            observed_by_str = (obs.observed_by.get_full_name() or obs.observed_by.username) if obs.observed_by else '-'
+            self._info_grid(story, [
+                ['Date', date_str,
+                 'Type', obs_type],
+                ['Site', obs.site.name if obs.site else 'N/A',
+                 'Observed By', observed_by_str],
+                ['Follow-up Required', 'YES' if obs.follow_up_required else 'No',
+                 'Task', obs.task],
             ])
-        self._std_table(story, data, [0.95*inch, 1.3*inch, 2.3*inch, 1.05*inch, 0.85*inch])
+
+            self._content_row(story, 'CONTROLS VERIFIED', obs.controls_verified)
+            self._content_row(story, 'FINDINGS', obs.findings)
+            self._embed_image(story, obs.file)
+            story.append(Spacer(1, 0.25*inch))
+
         self._footer(story)
         doc.build(story)
         buf.seek(0)
