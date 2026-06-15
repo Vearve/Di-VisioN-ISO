@@ -129,14 +129,8 @@ class FLRAForm(TenantScopedModelForm):
         super().__init__(*args, **kwargs)
 
         if 'selected_employees' in self.fields:
-            self.fields['selected_employees'].queryset = Employee.objects.filter(tenant=self.tenant).order_by('name') if self.tenant else Employee.objects.none()
-            self.fields['selected_employees'].widget = forms.SelectMultiple(attrs={
-                'size': 6,
-                'class': 'searchable-multiselect-source',
-                'data-placeholder': 'Search employees...',
-            })
             self.fields['selected_employees'].label = 'Employees on task'
-            self.fields['selected_employees'].help_text = 'Hold Ctrl or Cmd to select one or more employees for the same task.'
+            self.fields['selected_employees'].help_text = 'Select one or more employees on this task.'
 
         if 'crew' in self.fields:
             self.fields['crew'].label = 'Crew / external workers'

@@ -121,11 +121,16 @@
     body.light-mode .activity,
     body.light-mode .ll-panel,
     body.light-mode .qs-card,
-    body.light-mode .kpi-card {
+    body.light-mode .kpi-card,
+    body.light-mode .site-card {
         background: #ffffff !important;
         color: var(--text) !important;
         border-color: rgba(0,70,150,0.12) !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    }
+    body.light-mode .site-card:hover {
+        border-color: rgba(0,98,204,0.28) !important;
+        box-shadow: var(--glow-sm), 0 4px 10px rgba(0,0,0,0.08) !important;
     }
     body.light-mode .module-card { clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%) !important; }
     body.light-mode .module-card strong { color: #0d1b38 !important; }
